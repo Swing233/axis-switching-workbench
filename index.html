@@ -129,6 +129,7 @@
   }
   #tl-toolbar input[type=range]{accent-color:var(--accent); width:90px;}
   #tl-toolbar .spacer{flex:1;}
+  #tl-toolbar .tl-hint{color:#565c6a; font-size:11px; white-space:nowrap;}
 
   #tl-body{flex:1; overflow:auto; position:relative; background:#191b21;}
   #tl-content{position:relative; min-height:100%;}
@@ -187,6 +188,10 @@
   .diamond.step{background:var(--grey); border-radius:2px; transform:rotate(0);}
   .diamond:hover{filter:brightness(1.25);}
   .diamond.selected{outline:2px solid #fff; outline-offset:1px; z-index:6;}
+  #marquee{
+    position:absolute; z-index:40; display:none; pointer-events:none;
+    background:rgba(90,162,240,.14); border:1px solid #5aa2f0;
+  }
 
   #playhead{
     position:absolute; top:0; bottom:0; width:1px; background:#ff5d5d; z-index:25; pointer-events:none;
@@ -299,8 +304,9 @@
       <label>缩放<input type="range" id="inp-zoom" min="30" max="500" step="5" value="95"/></label>
       <span id="audio-chip" title="点击移除音频" style="display:none;align-items:center;gap:6px;height:24px;padding:0 9px;background:#23262e;border:1px solid #3a4050;border-radius:5px;font-size:11px;color:#8fd0ff;cursor:pointer;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis">🎙 <span id="audio-chip-name"></span> · <span id="audio-chip-dur"></span> <span style="color:#e5645f">✕</span></span>
       <div class="spacer"></div>
+      <label class="tl-hint" title="在轨道区按住鼠标拖拽框选多个关键帧 · 拖动任意选中帧可整组移动 · Delete 批量删除">⛶ 拖拽框选</label>
       <button id="btn-key-all" class="tbtn" title="为所有轨道在当前时间添加关键帧">◇ 全部打关键帧</button>
-      <button id="btn-del-key" class="tbtn" title="删除当前选中的关键帧">🗑 删除关键帧</button>
+      <button id="btn-del-key" class="tbtn" title="删除当前选中的关键帧（支持框选批量删除）">🗑 删除关键帧</button>
       <button id="btn-clear-all" class="tbtn" title="一键删除所有轨道的全部关键帧（可用 ⌘Z 撤回）">🗑 清空所有关键帧</button>
       <button id="btn-undo" class="tbtn" disabled title="撤回上一步操作（⌘Z / Ctrl+Z）">↩ 撤回</button>
       <button id="btn-redo" class="tbtn" disabled title="重做（⌘⇧Z / Ctrl+Shift+Z / Ctrl+Y）">↪ 重做</button>
@@ -308,6 +314,7 @@
     <div id="tl-body">
       <div id="tl-content">
         <div id="playhead"></div>
+        <div id="marquee"></div>
       </div>
     </div>
   </div>
