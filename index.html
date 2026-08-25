@@ -264,9 +264,14 @@
     <button id="btn-frame" class="tbtn on" title="显示/隐藏最终导出视频画幅（安全框，虚线范围即导出画面）">🔲 画幅框</button>
     <button id="btn-audio" class="tbtn" title="导入外部音频（口播/配乐），在时间轴上显示波形并对齐关键帧节奏">🎙 导入口播</button>
     <input type="file" id="file-audio" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" hidden/>
+    <div class="sep"></div>
+    <button id="btn-project-save" class="tbtn" title="把当前工程（全部关键帧与设置）保存为 .json 文件，可备份/分享，随时用「打开工程」恢复">💾 保存工程</button>
+    <button id="btn-project-open" class="tbtn" title="从本地 .json 工程文件恢复全部关键帧与设置（也可直接把文件拖进页面）">📂 打开工程</button>
+    <button id="btn-project-new" class="tbtn" title="清空当前内容，新建工程（恢复默认演示动画）">🗑 新建</button>
+    <input type="file" id="file-project" accept=".json,application/json" hidden/>
     <button id="btn-export" class="tbtn primary">⬇ 导出动画</button>
     <div class="spacer"></div>
-    <div class="hint">空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · 双击轨道空白处添加关键帧</div>
+    <div class="hint">💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · 双击轨道空白处添加关键帧</div>
   </div>
 
   <div id="main">
