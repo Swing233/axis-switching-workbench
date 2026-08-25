@@ -42,6 +42,7 @@
   .tbtn.primary{background:linear-gradient(180deg,#f6b95a,#e3962b); color:#221a08; font-weight:600; border-color:#c77f1f;}
   .tbtn.primary:hover{filter:brightness(1.08);}
   .tbtn.on{border-color:var(--accent); color:var(--accent2); box-shadow:inset 0 0 0 1px var(--accent);}
+  .tbtn:disabled{opacity:.38; cursor:not-allowed; border-color:var(--line); color:#5a6274;}
   #topbar .spacer{flex:1;}
   #topbar .hint{color:var(--dim); font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 
@@ -278,7 +279,9 @@
       <div class="spacer"></div>
       <button id="btn-key-all" class="tbtn" title="为所有轨道在当前时间添加关键帧">◇ 全部打关键帧</button>
       <button id="btn-del-key" class="tbtn" title="删除当前选中的关键帧">🗑 删除关键帧</button>
-      <button id="btn-clear-all" class="tbtn" title="一键删除所有轨道的全部关键帧（不可撤销）">🗑 清空所有关键帧</button>
+      <button id="btn-clear-all" class="tbtn" title="一键删除所有轨道的全部关键帧（可用 ⌘Z 撤回）">🗑 清空所有关键帧</button>
+      <button id="btn-undo" class="tbtn" disabled title="撤回上一步操作（⌘Z / Ctrl+Z）">↩ 撤回</button>
+      <button id="btn-redo" class="tbtn" disabled title="重做（⌘⇧Z / Ctrl+Shift+Z / Ctrl+Y）">↪ 重做</button>
     </div>
     <div id="tl-body">
       <div id="tl-content">
