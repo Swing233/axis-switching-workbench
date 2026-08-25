@@ -57,6 +57,21 @@
     pointer-events:none; backdrop-filter:blur(4px);
   }
 
+  /* 导出画幅安全框：预览中显示最终输出视频的取景范围（DOM overlay，不进入导出画面） */
+  #safe-frame{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    border:1.5px dashed rgba(246,185,90,.55); border-radius:3px;
+    box-sizing:border-box; pointer-events:none; z-index:6;
+    transition:opacity .25s;
+  }
+  #safe-frame.hidden{opacity:0;}
+  #safe-frame span{
+    position:absolute; top:-23px; left:0; padding:2px 7px; border-radius:4px;
+    background:rgba(10,12,18,.75); border:1px solid rgba(246,185,90,.35);
+    color:rgba(246,185,90,.9); font-size:11px; letter-spacing:.4px;
+    font-family:"SF Mono",Consolas,monospace; white-space:nowrap;
+  }
+
   /* ---------- 参数面板 ---------- */
   #panel{
     width:300px; flex:0 0 300px; background:var(--panel); border-left:1px solid var(--line);
@@ -246,6 +261,8 @@
     <div class="sep"></div>
     <button id="btn-view" class="tbtn on">🎥 摄像机视角</button>
     <button id="btn-sync-cam" class="tbtn" title="把当前视口机位写入播放头时间的关键帧：自由视角摆好机位（旋转/缩放/右键平移）后点此，动画在该时刻即使用此视角">📌 同步视角</button>
+    <button id="btn-grid" class="tbtn on" title="显示/隐藏全局参考网格">📐 网格</button>
+    <button id="btn-frame" class="tbtn on" title="显示/隐藏最终导出视频画幅（安全框，虚线范围即导出画面）">🔲 画幅框</button>
     <button id="btn-audio" class="tbtn" title="导入外部音频（口播/配乐），在时间轴上显示波形并对齐关键帧节奏">🎙 导入口播</button>
     <input type="file" id="file-audio" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" hidden/>
     <button id="btn-export" class="tbtn primary">⬇ 导出动画</button>
@@ -256,6 +273,7 @@
   <div id="main">
     <div id="viewport-wrap">
       <div id="viewport"></div>
+      <div id="safe-frame"><span id="safe-label">1920×1080</span></div>
       <div id="view-badge">摄像机视角 · 按关键帧动画渲染</div>
     </div>
     <div id="panel"></div>
