@@ -1598,8 +1598,133 @@ function pickVideoMime(withAudio, wantWebm) {
   return null;
 }
 
+// ---- WebCodecs 精确帧率导出（解决 MediaRecorder 输出帧率不受控）----
+// 根因：MediaRecorder 的输出帧率由浏览器编码器决定，无法通过 API 指定——
+// 设置 60fps 导出，实际文件帧率可能只有 ~24fps（Chrome 编码器行为）。
+// 这里改用 WebCodecs VideoEncoder 逐帧精确编码 + mp4-muxer / webm-muxer 封装容器，
+// 帧率严格等于所选值；环境不支持（Firefox/Safari 无 VideoEncoder）或 muxer 库
+// 加载失败时，调用方回退到 MediaRecorder 实时录制。
+const MUXER_CDN = {
+  mp4: 'https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.min.js',     // 全局 Mp4Muxer
+  webm: 'https://cdn.jsdelivr.net/npm/webm-muxer@5.0.3/build/webm-muxer.min.js',   // 全局 WebMMuxer
+};
+let muxerLibCache = {};
+
+function loadMuxerLib(wantWebm) {
+  const key = wantWebm ? 'webm' : 'mp4';
+  if (muxerLibCache[key]) return muxerLibCache[key];
+  if (muxerLibCache[key] === false) return Promise.reject(new Error('muxer 库加载失败'));
+  muxerLibCache[key] = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = MUXER_CDN[key];
+    s.onload = () => {
+      const lib = window[key === 'webm' ? 'WebMMuxer' : 'Mp4Muxer'];
+      if (lib && lib.Muxer && lib.ArrayBufferTarget) resolve(lib);
+      else { muxerLibCache[key] = false; reject(new Error('muxer 库格式异常')); }
+    };
+    s.onerror = () => { muxerLibCache[key] = false; reject(new Error('muxer 库加载失败（网络不可达）')); };
+    document.head.appendChild(s);
+  });
+  return muxerLibCache[key];
+}
+
+function canUseWebCodecs() {
+  return typeof window.VideoEncoder === 'function' && typeof VideoFrame === 'function';
+}
+
+// 探测编码器支持的 codec 字符串：H.264 由 High 4.2 到 Baseline 降级，VP9 由 level 4.1 降级。
+async function pickVideoCodec(wantWebm, w, h, fps) {
+  const cands = wantWebm
+    ? ['vp09.00.41.08', 'vp09.00.10.08']
+    : ['avc1.64002a', 'avc1.640028', 'avc1.42002a', 'avc1.42001f'];
+  for (const codec of cands) {
+    try {
+      const r = await VideoEncoder.isConfigSupported({ codec, width: w, height: h, bitrate: 16e6, framerate: fps });
+      if (r && r.supported) return codec;
+    } catch (e) { /* 尝试下一个 */ }
+  }
+  return null;
+}
+
+// 逐帧精确导出。返回 'ok' | 'cancelled' | 'unsupported'（unsupported → 调用方回退 MediaRecorder）
+async function frameAccurateExport(w, h, fps, wantWebm) {
+  if (!canUseWebCodecs()) return 'unsupported';
+  const bar = document.querySelector('#export-progress i');
+  const status = document.getElementById('export-status');
+  const prog = document.getElementById('export-progress');
+  prog.style.display = 'block';
+  exporting = true; exportCancelled = false;
+  setPlaying(false);
+
+  const canvas = renderer.domElement;
+  const oldW = canvas.width, oldH = canvas.height;
+  const oldAspect = camera.aspect;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+
+  let enc = null;
+  try {
+    const lib = await loadMuxerLib(wantWebm);
+    const codec = await pickVideoCodec(wantWebm, w, h, fps);
+    if (!codec) return 'unsupported';
+    const ext = wantWebm ? 'webm' : 'mp4';
+    const frames = Math.max(1, Math.round(state.duration * fps));
+    const usPerFrame = Math.round(1e6 / fps);
+
+    const muxer = new lib.Muxer({
+      target: new lib.ArrayBufferTarget(),
+      video: { codec: wantWebm ? 'V_VP9' : 'avc', width: w, height: h, frameRate: fps, bitrate: 16e6 },
+      ...(wantWebm ? {} : { fastStart: 'in-memory' }),
+      firstTimestampBehavior: 'offset',
+    });
+
+    enc = new VideoEncoder({
+      output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+      error: e => { throw e; },
+    });
+    enc.configure({ codec, width: w, height: h, bitrate: 16e6, framerate: fps });
+
+    for (let i = 0; i < frames; i++) {
+      if (exportCancelled) break;
+      const t = i / fps;
+      applyAll(t, true);
+      controls.update();
+      renderer.render(scene, camera);
+      const vf = new VideoFrame(canvas, { timestamp: i * usPerFrame, duration: usPerFrame });
+      enc.encode(vf, { keyFrame: i % Math.round(fps * 5) === 0 });
+      vf.close();
+      // 背压：等编码队列消化，避免 4K 长动画内存堆积
+      while (enc.encodeQueueSize > 8) await new Promise(r => setTimeout(r, 0));
+      bar.style.width = ((i + 1) / frames * 100).toFixed(1) + '%';
+      status.textContent = `精确编码 ${i + 1} / ${frames} 帧（t = ${t.toFixed(2)}s @ ${fps}fps）`;
+    }
+    if (exportCancelled) { await enc.flush().catch(() => {}); return 'cancelled'; }
+
+    status.textContent = '正在封装容器并写入文件…';
+    await enc.flush();
+    enc.close(); enc = null;
+    muxer.finalize();
+    const blob = new Blob([muxer.target.buffer], { type: wantWebm ? 'video/webm' : 'video/mp4' });
+    downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps.${ext}`);
+    status.textContent = `✅ 已导出 ${ext.toUpperCase()} 视频（${w}×${h} @ ${fps}fps 精确编码，${blob.size / 1048576 > 1 ? (blob.size / 1048576).toFixed(1) + ' MB' : Math.round(blob.size / 1024) + ' KB'}）— 可直接预览`;
+    return 'ok';
+  } catch (err) {
+    status.textContent = '精确导出失败：' + err.message;
+    return 'unsupported';
+  } finally {
+    if (enc) { try { enc.close(); } catch (e) {} }
+    renderer.setSize(oldW, oldH, false);
+    camera.aspect = oldAspect;
+    camera.updateProjectionMatrix();
+    exporting = false;
+    applyAll(state.time);
+  }
+}
+
 // 用浏览器原生 MediaRecorder 实时录制（MP4/WebM）。以真实流逝时间驱动动画，
 // 保证视频总时长 = 动画时长；canvas.captureStream 按帧率节流捕获，不掉帧丢内容。
+// 注意：MediaRecorder 的输出帧率由浏览器编码器决定，无法精确控制（回退路径）。
 async function recordingExport(w, h, fps, wantWebm) {
   const bar = document.querySelector('#export-progress i');
   const status = document.getElementById('export-status');
@@ -1650,7 +1775,7 @@ async function recordingExport(w, h, fps, wantWebm) {
     } else {
       const blob = new Blob(chunks, { type: mime });
       downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps.${ext}`);
-      status.textContent = `✅ 已导出 ${ext.toUpperCase()} 视频（${w}×${h} @ ${fps}fps，${blob.size / 1048576 > 1 ? (blob.size / 1048576).toFixed(1) + ' MB' : Math.round(blob.size / 1024) + ' KB'}）— 可直接预览`;
+      status.textContent = `✅ 已导出 ${ext.toUpperCase()} 视频（${w}×${h} @ ${fps}fps，${blob.size / 1048576 > 1 ? (blob.size / 1048576).toFixed(1) + ' MB' : Math.round(blob.size / 1024) + ' KB'}）— 可直接预览。注意：本浏览器不支持精确帧率编码，实际帧率由浏览器决定（通常 24/30fps）`;
     }
   } catch (err) {
     status.textContent = '导出失败：' + err.message;
@@ -1715,7 +1840,7 @@ async function exportLiveVoice(w, h, fps, wantWebm) {
     } else {
       const blob = new Blob(chunks, { type: mime });
       downloadBlob(blob, `axis_switching_voice_${w}x${h}_${fps}fps.${ext}`);
-      status.textContent = `✅ 已导出带口播的 ${ext.toUpperCase()} 视频（${w}×${h}，${blob.size / 1048576 > 1 ? (blob.size / 1048576).toFixed(1) + ' MB' : Math.round(blob.size / 1024) + ' KB'}）— 可直接预览`;
+      status.textContent = `✅ 已导出带口播的 ${ext.toUpperCase()} 视频（${w}×${h}，${blob.size / 1048576 > 1 ? (blob.size / 1048576).toFixed(1) + ' MB' : Math.round(blob.size / 1024) + ' KB'}）— 可直接预览。注意：实时混音录制的帧率由浏览器编码器决定（可能与所选 ${fps}fps 不一致）`;
     }
   } catch (err) {
     status.textContent = '混音导出失败：' + err.message;
@@ -1740,11 +1865,17 @@ document.getElementById('exp-start').addEventListener('click', async () => {
   const format = document.getElementById('exp-format').value;
   const mix = document.getElementById('exp-mix').checked;
 
-  // MP4 / WebM：浏览器原生 MediaRecorder 实时录制（总时长 = 动画时长，直接可预览）
+  // MP4 / WebM：优先 WebCodecs 逐帧精确编码（帧率严格 = 所选值，60fps 就是 60fps）；
+  // 浏览器不支持 WebCodecs 或 muxer 库加载失败时，回退 MediaRecorder 实时录制。
   if (format === 'mp4' || format === 'webm') {
     const wantWebm = format === 'webm';
-    if (mix && audioState.ready) await exportLiveVoice(w, h, fps, wantWebm);
-    else await recordingExport(w, h, fps, wantWebm);
+    if (mix && audioState.ready) {
+      await exportLiveVoice(w, h, fps, wantWebm); // 混音：实时录制（音画同步优先）
+    } else {
+      const r = await frameAccurateExport(w, h, fps, wantWebm);
+      if (r === 'ok' || r === 'cancelled') return;
+      await recordingExport(w, h, fps, wantWebm);
+    }
     return;
   }
 
