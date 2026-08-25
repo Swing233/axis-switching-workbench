@@ -252,7 +252,6 @@
 { "imports": { "three": "./assets/vendor/three.module.js" } }
 </script>
 <script src="./assets/vendor/jszip.min.js"></script>
-<script src="./assets/vendor/whammy.js"></script>
 </head>
 <body>
 <div id="app">
@@ -352,7 +351,8 @@
     </div>
     <div class="frow"><span>格式</span>
       <select id="exp-format">
-        <option value="webm">WebM 视频（精确帧率）</option>
+        <option value="mp4" selected>MP4 视频（H.264，通用可预览）</option>
+        <option value="webm">WebM 视频（VP9）</option>
         <option value="png">PNG 图像序列（ZIP 打包）</option>
       </select>
     </div>
