@@ -305,8 +305,10 @@
       <span id="audio-chip" title="点击移除音频" style="display:none;align-items:center;gap:6px;height:24px;padding:0 9px;background:#23262e;border:1px solid #3a4050;border-radius:5px;font-size:11px;color:#8fd0ff;cursor:pointer;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis">🎙 <span id="audio-chip-name"></span> · <span id="audio-chip-dur"></span> <span style="color:#e5645f">✕</span></span>
       <div class="spacer"></div>
       <label class="tl-hint" title="在轨道区按住鼠标拖拽框选多个关键帧 · 拖动任意选中帧可整组移动 · Delete 批量删除">⛶ 拖拽框选</label>
+      <label class="tl-hint" title="⌘C/⌃C 复制选中关键帧 · ⌘X/⌃X 剪切 · ⌘V/⌃V 粘贴到当前播放头位置（保持各帧相对时间偏移，支持框选批量）">⧉ 复制粘贴</label>
       <button id="btn-key-all" class="tbtn" title="为所有轨道在当前时间添加关键帧">◇ 全部打关键帧</button>
       <button id="btn-del-key" class="tbtn" title="删除当前选中的关键帧（支持框选批量删除）">🗑 删除关键帧</button>
+      <button id="btn-paste-key" class="tbtn" title="把剪贴板中的关键帧粘贴到当前播放头位置，保持相对时间偏移（⌘V / Ctrl+V）">📋 粘贴关键帧</button>
       <button id="btn-clear-all" class="tbtn" title="一键删除所有轨道的全部关键帧（可用 ⌘Z 撤回）">🗑 清空所有关键帧</button>
       <button id="btn-undo" class="tbtn" disabled title="撤回上一步操作（⌘Z / Ctrl+Z）">↩ 撤回</button>
       <button id="btn-redo" class="tbtn" disabled title="重做（⌘⇧Z / Ctrl+Shift+Z / Ctrl+Y）">↪ 重做</button>
