@@ -1539,17 +1539,23 @@ const expCustomRow = document.getElementById('exp-custom-row');
 expRes.addEventListener('change', () => {
   expCustomRow.style.display = expRes.value === 'custom' ? 'flex' : 'none';
 });
-document.getElementById('exp-format').addEventListener('change', () => {
-  const f = document.getElementById('exp-format').value;
-  document.getElementById('exp-mix-row').style.display = (f === 'webm' && audioState.ready) ? 'flex' : 'none';
+const MP4_OK = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/mp4');
+const expFormat = document.getElementById('exp-format');
+expFormat.addEventListener('change', () => {
+  const f = expFormat.value;
+  document.getElementById('exp-mix-row').style.display = ((f === 'mp4' || f === 'webm') && audioState.ready) ? 'flex' : 'none';
 });
 document.getElementById('btn-export').addEventListener('click', () => {
   const mixOk = audioState.ready;
+  // 浏览器不支持 MP4 录制时禁用该选项（如 Firefox）
+  const mp4Opt = expFormat.querySelector('option[value="mp4"]');
+  mp4Opt.disabled = !MP4_OK;
+  if (!MP4_OK && expFormat.value === 'mp4') expFormat.value = 'webm';
   document.getElementById('exp-mix-row').style.display = mixOk ? 'flex' : 'none';
   document.getElementById('exp-mix').checked = mixOk;
   document.getElementById('exp-range').value = mixOk
     ? `口播 ${audioState.duration.toFixed(1)}s · 动画 ${state.duration}s — 混音导出为实时录制，时长以口播为准`
-    : `0 – ${state.duration}s（共 ${Math.round(state.duration * PREVIEW_FPS)} 帧预览，导出帧数 = 时长 × 帧率）`;
+    : `0 – ${state.duration}s（实时录制，视频时长 = 动画时长 ${state.duration}s）`;
   document.getElementById('export-status').textContent = '';
   document.getElementById('export-progress').style.display = 'none';
   exportModal.style.display = 'flex';
@@ -1569,7 +1575,89 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
-async function exportLiveVoice(w, h, fps) {
+// 挑选当前浏览器支持的最佳录制编码：MP4(H.264) 优先，其次 VP9，最后 VP8。
+// wantWebm=true 时只在 WebM 容器内选（用户明确选了 WebM 格式）。
+function pickVideoMime(withAudio, wantWebm) {
+  const groups = wantWebm
+    ? (withAudio
+        ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+        : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'])
+    : (withAudio
+        ? ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+        : ['video/mp4;codecs=avc1.42E01E', 'video/mp4;codecs=avc1.640028', 'video/mp4',
+           'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']);
+  for (const c of groups) {
+    if (MediaRecorder.isTypeSupported(c)) return c;
+  }
+  return null;
+}
+
+// 用浏览器原生 MediaRecorder 实时录制（MP4/WebM）。以真实流逝时间驱动动画，
+// 保证视频总时长 = 动画时长；canvas.captureStream 按帧率节流捕获，不掉帧丢内容。
+async function recordingExport(w, h, fps, wantWebm) {
+  const bar = document.querySelector('#export-progress i');
+  const status = document.getElementById('export-status');
+  const prog = document.getElementById('export-progress');
+  prog.style.display = 'block';
+  exporting = true; exportCancelled = false;
+  setPlaying(false);
+
+  const canvas = renderer.domElement;
+  const oldW = canvas.width, oldH = canvas.height;
+  const oldAspect = camera.aspect;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+
+  try {
+    const mime = pickVideoMime(false, wantWebm);
+    if (!mime) throw new Error('当前浏览器不支持视频录制');
+    const isMp4 = mime.startsWith('video/mp4');
+    const ext = isMp4 ? 'mp4' : 'webm';
+
+    const stream = canvas.captureStream(fps);
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 16e6 });
+    const chunks = [];
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    const stopped = new Promise(res => { rec.onstop = res; });
+
+    rec.start(200);
+    const t0 = performance.now();
+    let rafId = 0;
+    const finish = () => { cancelAnimationFrame(rafId); rec.stop(); };
+    const tick = () => {
+      if (exportCancelled) { finish(); return; }
+      const el = (performance.now() - t0) / 1000;
+      if (el >= state.duration) { finish(); return; }
+      applyAll(el, true);
+      controls.update();
+      renderer.render(scene, camera);
+      bar.style.width = Math.min(100, (el / state.duration * 100).toFixed(1)) + '%';
+      status.textContent = `录制中 ${el.toFixed(2)}s / ${state.duration.toFixed(1)}s（${ext.toUpperCase()} ${isMp4 ? 'H.264' : 'VP9'}，导出后可直接预览）`;
+      rafId = requestAnimationFrame(tick);
+    };
+    tick();
+    await stopped;
+
+    if (exportCancelled) {
+      status.textContent = '已取消导出。';
+    } else {
+      const blob = new Blob(chunks, { type: mime });
+      downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps.${ext}`);
+      status.textContent = `✅ 已导出 ${ext.toUpperCase()} 视频（${w}×${h} @ ${fps}fps，${blob.size / 1048576 > 1 ? (blob.size / 1048576).toFixed(1) + ' MB' : Math.round(blob.size / 1024) + ' KB'}）— 可直接预览`;
+    }
+  } catch (err) {
+    status.textContent = '导出失败：' + err.message;
+  } finally {
+    renderer.setSize(oldW, oldH, false);
+    camera.aspect = oldAspect;
+    camera.updateProjectionMatrix();
+    exporting = false;
+    applyAll(state.time);
+  }
+}
+
+async function exportLiveVoice(w, h, fps, wantWebm) {
   const bar = document.querySelector('#export-progress i');
   const status = document.getElementById('export-status');
   const prog = document.getElementById('export-progress');
@@ -1589,12 +1677,12 @@ async function exportLiveVoice(w, h, fps) {
     const audioTracks = audioState.el.captureStream().getAudioTracks();
     if (!audioTracks.length) throw new Error('无法捕获口播音频轨');
     audioTracks.forEach(t => stream.addTrack(t));
-    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
-      ? 'video/webm;codecs=vp8,opus'
-      : (MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : null);
-    if (!mime) throw new Error('当前浏览器不支持 MediaRecorder WebM');
+    const mime = pickVideoMime(true, wantWebm);
+    if (!mime) throw new Error('当前浏览器不支持视频录制');
+    const isMp4 = mime.startsWith('video/mp4');
+    const ext = isMp4 ? 'mp4' : 'webm';
 
-    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12e6, audioBitsPerSecond: 160e3 });
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 16e6, audioBitsPerSecond: 160e3 });
     const chunks = [];
     rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
     const stopped = new Promise(res => { rec.onstop = res; });
@@ -1620,8 +1708,8 @@ async function exportLiveVoice(w, h, fps) {
       status.textContent = '已取消导出。';
     } else {
       const blob = new Blob(chunks, { type: mime });
-      downloadBlob(blob, `axis_switching_voice_${w}x${h}_${fps}fps.webm`);
-      status.textContent = `✅ 已导出带口播的 WebM 视频（${w}×${h}，${blob.size / 1048576 > 1 ? (blob.size / 1048576).toFixed(1) + ' MB' : Math.round(blob.size / 1024) + ' KB'}）`;
+      downloadBlob(blob, `axis_switching_voice_${w}x${h}_${fps}fps.${ext}`);
+      status.textContent = `✅ 已导出带口播的 ${ext.toUpperCase()} 视频（${w}×${h}，${blob.size / 1048576 > 1 ? (blob.size / 1048576).toFixed(1) + ' MB' : Math.round(blob.size / 1024) + ' KB'}）— 可直接预览`;
     }
   } catch (err) {
     status.textContent = '混音导出失败：' + err.message;
@@ -1646,10 +1734,15 @@ document.getElementById('exp-start').addEventListener('click', async () => {
   const format = document.getElementById('exp-format').value;
   const mix = document.getElementById('exp-mix').checked;
 
-  if (format === 'webm' && mix && audioState.ready) {
-    await exportLiveVoice(w, h, fps);
+  // MP4 / WebM：浏览器原生 MediaRecorder 实时录制（总时长 = 动画时长，直接可预览）
+  if (format === 'mp4' || format === 'webm') {
+    const wantWebm = format === 'webm';
+    if (mix && audioState.ready) await exportLiveVoice(w, h, fps, wantWebm);
+    else await recordingExport(w, h, fps, wantWebm);
     return;
   }
+
+  // PNG 序列：逐帧精确渲染打包 ZIP
   const frames = Math.max(1, Math.round(state.duration * fps));
 
   const bar = document.querySelector('#export-progress i');
@@ -1667,10 +1760,7 @@ document.getElementById('exp-start').addEventListener('click', async () => {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 
-  let zip = null, video = null;
-  if (format === 'png') zip = new JSZip();
-  else video = new Whammy.Video(fps);
-
+  const zip = new JSZip();
   const pad = n => String(n).padStart(4, '0');
   try {
     for (let i = 0; i < frames; i++) {
@@ -1679,30 +1769,19 @@ document.getElementById('exp-start').addEventListener('click', async () => {
       applyAll(t, true);
       controls.update();
       renderer.render(scene, camera);
-      if (format === 'png') {
-        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-        zip.file(`frame_${pad(i)}.png`, blob);
-      } else {
-        video.add(canvas.toDataURL('image/webp', 0.92));
-      }
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      zip.file(`frame_${pad(i)}.png`, blob);
       bar.style.width = ((i + 1) / frames * 100).toFixed(1) + '%';
       status.textContent = `渲染帧 ${i + 1} / ${frames}（t = ${t.toFixed(2)}s）`;
       await new Promise(r => setTimeout(r, 0));
     }
     if (!exportCancelled) {
-      status.textContent = '正在封装文件…';
-      await new Promise(r => setTimeout(r, 30));
-      if (format === 'png') {
-        const blob = await zip.generateAsync({ type: 'blob' }, m => {
-          bar.style.width = (m.percent).toFixed(1) + '%';
-        });
-        downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps_序列帧.zip`);
-        status.textContent = `✅ 已导出 ${frames} 帧 PNG 序列（${w}×${h} @ ${fps}fps）`;
-      } else {
-        const blob = await new Promise(res => video.compile(false, res));
-        downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps.webm`);
-        status.textContent = `✅ 已导出 WebM 视频（${w}×${h} @ ${fps}fps，${frames} 帧）`;
-      }
+      status.textContent = '正在打包 ZIP…';
+      const blob = await zip.generateAsync({ type: 'blob' }, m => {
+        bar.style.width = (m.percent).toFixed(1) + '%';
+      });
+      downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps_序列帧.zip`);
+      status.textContent = `✅ 已导出 ${frames} 帧 PNG 序列（${w}×${h} @ ${fps}fps）`;
     } else {
       status.textContent = '已取消导出。';
     }
