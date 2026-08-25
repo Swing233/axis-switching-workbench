@@ -751,6 +751,43 @@ function deleteSelection() { // 批量删除所有选中的关键帧（一次快
   renderTimeline(); applyAll(state.time);
 }
 
+// --- 复制 / 剪切 / 粘贴（与框选多选配合，支持批量） ---
+let kfClipboard = null; // [{id, t, v, interp}]，t 为复制时刻的原始时间
+function copySelection() {
+  if (!state.sel.size) { flashHint('先选中关键帧（点击或框选），再按 ⌘C 复制'); return false; }
+  const items = [];
+  for (const key of state.sel) {
+    const [id, i] = key.split(':');
+    const k = keysOf(id)[+i];
+    if (k) items.push({ id, t: k.t, v: k.v, interp: k.interp });
+  }
+  if (!items.length) return false;
+  kfClipboard = items;
+  flashHint(`已复制 ${items.length} 个关键帧（⌘V 粘贴到播放头位置）`);
+  return true;
+}
+function cutSelection() { // 剪切 = 复制 + 删除（deleteSelection 内含一次快照，可撤回）
+  if (copySelection()) deleteSelection();
+}
+function pasteSelection() { // 粘贴到当前播放头：保持各帧相对最早帧的时间偏移
+  if (!kfClipboard || !kfClipboard.length) { flashHint('剪贴板为空：先 ⌘C 复制或 ⌘X 剪切关键帧'); return; }
+  snapshot();
+  const anchorT = Math.min(...kfClipboard.map(k => k.t));
+  const base = Math.max(0, Math.min(state.time, state.duration)); // 播放头即新锚点
+  clearSelection();
+  let pasted = 0;
+  for (const item of kfClipboard) {
+    const t = Math.max(0, Math.min(state.duration, base + (item.t - anchorT)));
+    upsertKey(item.id, t, item.v, item.interp); // 同位置已有帧则覆盖其值
+    const idx = keyIndexAt(item.id, t);
+    if (idx >= 0) state.sel.add(selKey(item.id, idx)); // 粘贴后自动选中新帧，可立即整组拖动
+    pasted++;
+  }
+  syncSelected();
+  renderTimeline(); applyAll(state.time);
+  flashHint(`已粘贴 ${pasted} 个关键帧到 ${base.toFixed(2)}s`);
+}
+
 // ---------------------------------------------------------------------------
 // 4a. 撤销 / 重做（快照式，作用于全部关键帧轨道 state.keys）
 //     每次破坏性修改前 snapshot() 一次；同一手势（拖动数值/菱形/滑杆）内
@@ -1046,7 +1083,7 @@ function flashHint(msg) {
   hintEl.textContent = msg; hintEl.style.color = '#8fd0ff';
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => {
-    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · 双击轨道空白处添加关键帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转 · 🎙 导入口播对齐节奏 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程';
+    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴关键帧（粘贴到播放头） · 双击轨道空白处添加关键帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转 · 🎙 导入口播对齐节奏 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程';
     hintEl.style.color = '';
   }, 7000);
 }
@@ -1531,6 +1568,9 @@ document.getElementById('btn-key-all').addEventListener('click', () => {
 document.getElementById('btn-del-key').addEventListener('click', () => {
   deleteSelection();
 });
+document.getElementById('btn-paste-key').addEventListener('click', () => {
+  pasteSelection();
+});
 document.getElementById('btn-clear-all').addEventListener('click', () => {
   const total = TRACKS.reduce((s, tr) => s + keysOf(tr.id).length, 0);
   if (total === 0) { flashHint('当前没有任何关键帧'); return; }
@@ -1549,6 +1589,9 @@ window.addEventListener('keydown', e => {
   if (mod && e.code === 'KeyZ') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if (mod && e.code === 'KeyY') { e.preventDefault(); redo(); return; }
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (mod && e.code === 'KeyC') { e.preventDefault(); copySelection(); return; }
+  if (mod && e.code === 'KeyX') { e.preventDefault(); cutSelection(); return; }
+  if (mod && e.code === 'KeyV') { e.preventDefault(); pasteSelection(); return; }
   if (e.code === 'Space') { e.preventDefault(); setPlaying(!state.playing); }
   else if (e.key === 'ArrowLeft') seek(state.time - 1 / PREVIEW_FPS);
   else if (e.key === 'ArrowRight') seek(state.time + 1 / PREVIEW_FPS);
