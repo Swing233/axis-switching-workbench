@@ -700,6 +700,9 @@ function currentValue(id) {
 function keyIndexAt(id, t, tol = 0.5 / PREVIEW_FPS) {
   return keysOf(id).findIndex(k => Math.abs(k.t - t) <= tol);
 }
+function snapToFrame(t) { // 帧吸附：时间量化到最近帧边界（PREVIEW_FPS）
+  return Math.round(t * PREVIEW_FPS) / PREVIEW_FPS;
+}
 function upsertKey(id, t, v, interp) {
   const ks = keysOf(id);
   const idx = keyIndexAt(id, t);
@@ -777,7 +780,7 @@ function pasteSelection() { // 粘贴到当前播放头：保持各帧相对最�
   clearSelection();
   let pasted = 0;
   for (const item of kfClipboard) {
-    const t = Math.max(0, Math.min(state.duration, base + (item.t - anchorT)));
+    const t = snapToFrame(Math.max(0, Math.min(state.duration, base + (item.t - anchorT))));
     upsertKey(item.id, t, item.v, item.interp); // 同位置已有帧则覆盖其值
     const idx = keyIndexAt(item.id, t);
     if (idx >= 0) state.sel.add(selKey(item.id, idx)); // 粘贴后自动选中新帧，可立即整组拖动
@@ -1083,7 +1086,7 @@ function flashHint(msg) {
   hintEl.textContent = msg; hintEl.style.color = '#8fd0ff';
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => {
-    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴关键帧（粘贴到播放头） · 双击轨道空白处添加关键帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转 · 🎙 导入口播对齐节奏 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程';
+    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴关键帧（粘贴到播放头） · 双击轨道空白处添加关键帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转（吸附帧） · Alt+滚轮 缩放时间轴 · 🎙 导入口播对齐节奏 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程';
     hintEl.style.color = '';
   }, 7000);
 }
@@ -1338,7 +1341,7 @@ function updateTimeDisplay() {
 }
 
 function seek(t, pause = true) {
-  state.time = Math.min(state.duration, Math.max(0, t));
+  state.time = Math.min(state.duration, Math.max(0, snapToFrame(t))); // 吸附到帧边界
   if (pause) setPlaying(false);
   syncAudioTime();
   applyAll(state.time);
@@ -1378,16 +1381,16 @@ function bindTimelineEvents() {
     if (!drag) return;
     const lane = laneEls[drag.trackId];
     const rect = lane.getBoundingClientRect();
-    let t = (e.clientX - rect.left) / state.px;
+    let t = snapToFrame((e.clientX - rect.left) / state.px); // 拖动吸附到帧
     t = Math.min(state.duration, Math.max(0, t));
     const k = keysOf(drag.trackId)[drag.index];
     if (!k) { drag = null; return; }
     if (!drag.moved) snapshot();
     const main = drag.group.find(g => g.id === drag.trackId && g.i === drag.index);
     const delta = main ? t - main.initT : 0;
-    for (const g of drag.group) { // 整组同步移动
+    for (const g of drag.group) { // 整组同步移动（逐帧吸附）
       if (!g.k) continue;
-      g.k.t = Math.min(state.duration, Math.max(0, g.initT + delta));
+      g.k.t = snapToFrame(Math.min(state.duration, Math.max(0, g.initT + delta)));
       const el = laneEls[g.id].querySelector(`.diamond[data-index="${g.i}"]`);
       if (el) el.style.left = (g.k.t * state.px) + 'px';
     }
@@ -1413,7 +1416,7 @@ function bindTimelineEvents() {
     const lane = e.target.closest('.tl-lane');
     if (lane) {
       const rect = lane.getBoundingClientRect();
-      const t = Math.min(state.duration, Math.max(0, (e.clientX - rect.left) / state.px));
+      const t = snapToFrame(Math.min(state.duration, Math.max(0, (e.clientX - rect.left) / state.px)));
       const id = lane.dataset.lane;
       snapshot();
       upsertKey(id, t, evalTrack(id, t));
@@ -1503,7 +1506,7 @@ document.getElementById('kf-time').addEventListener('change', e => {
   if (!editing) return;
   snapshot();
   const k = keysOf(editing.trackId)[editing.index];
-  k.t = Math.min(state.duration, Math.max(0, parseFloat(e.target.value) || 0));
+  k.t = snapToFrame(Math.min(state.duration, Math.max(0, parseFloat(e.target.value) || 0)));
   keysOf(editing.trackId).sort((a, b) => a.t - b.t);
   editing.index = keysOf(editing.trackId).indexOf(k);
   state.sel.clear(); state.sel.add(selKey(editing.trackId, editing.index)); syncSelected();
@@ -1560,6 +1563,23 @@ document.getElementById('inp-duration').addEventListener('change', e => {
 document.getElementById('inp-zoom').addEventListener('input', e => {
   state.px = +e.target.value; renderTimeline(); updatePlayhead(); scheduleAutosave();
 });
+// Alt + 滚轮：以鼠标位置为锚点缩放时间轴（鼠标指向的时间在缩放前后保持不变）
+tlBody.addEventListener('wheel', e => {
+  if (!e.altKey) return;
+  e.preventDefault();
+  const rect = tlBody.getBoundingClientRect();
+  const bodyX = e.clientX - rect.left;                 // 鼠标在可视区内的横向位置
+  const contentX = tlBody.scrollLeft + bodyX;          // 鼠标处的 timeline 内容坐标
+  const tAt = (contentX - NAMES_W) / state.px;         // 鼠标指向的时间（可为负）
+  const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;       // 上滚放大，下滚缩小
+  const oldPx = state.px;
+  state.px = Math.min(500, Math.max(30, Math.round(state.px * factor / 5) * 5)); // 与缩放滑杆同范围/步长
+  if (state.px === oldPx) return;
+  document.getElementById('inp-zoom').value = state.px;
+  renderTimeline(); updatePlayhead();
+  tlBody.scrollLeft = Math.max(0, NAMES_W + tAt * state.px - bodyX); // 锚点回位
+  scheduleAutosave();
+}, { passive: false });
 document.getElementById('btn-key-all').addEventListener('click', () => {
   snapshot();
   for (const tr of TRACKS) upsertKey(tr.id, state.time, currentValue(tr.id));
@@ -1593,8 +1613,8 @@ window.addEventListener('keydown', e => {
   if (mod && e.code === 'KeyX') { e.preventDefault(); cutSelection(); return; }
   if (mod && e.code === 'KeyV') { e.preventDefault(); pasteSelection(); return; }
   if (e.code === 'Space') { e.preventDefault(); setPlaying(!state.playing); }
-  else if (e.key === 'ArrowLeft') seek(state.time - 1 / PREVIEW_FPS);
-  else if (e.key === 'ArrowRight') seek(state.time + 1 / PREVIEW_FPS);
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); seek(state.time - 1 / PREVIEW_FPS); } // 阻止默认横向滚动
+  else if (e.key === 'ArrowRight') { e.preventDefault(); seek(state.time + 1 / PREVIEW_FPS); }
   else if (e.key === 'Delete' || e.key === 'Backspace') {
     deleteSelection();
   } else if (e.key === 'Escape') {
