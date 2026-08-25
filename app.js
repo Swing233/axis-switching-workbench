@@ -739,6 +739,7 @@ function snapshot() {
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack.length = 0;
   updateUndoButtons();
+  scheduleAutosave(); // 每次编辑都触发自动保存（防抖 600ms），刷新页面不丢工程
 }
 function restoreKeys(snap) {
   const out = {};
@@ -928,7 +929,7 @@ const panelInputs = {}; // id -> {range, num, kfBtn, segBtns?}
         chk.className = 'chkrow';
         chk.innerHTML = `<input type="checkbox" id="chk-lookat" checked/> 摄像机始终看向视觉中心（取消后用旋转关键帧控制朝向）`;
         panel.appendChild(chk);
-        chk.querySelector('input').addEventListener('change', e => { state.lookAtTarget = e.target.checked; applyAll(state.time); });
+        chk.querySelector('input').addEventListener('change', e => { state.lookAtTarget = e.target.checked; applyAll(state.time); scheduleAutosave(); });
       }
       lastGroup = tr.g;
     }
@@ -998,7 +999,7 @@ function updateKfButtons() {
 const AUDIO_ROW_H = 58;
 const audioState = {
   el: null, url: null, name: '', duration: 0,
-  peaks: null, ready: false,
+  peaks: null, ready: false, metaOnly: false, // metaOnly：工程恢复后仅有波形元数据（无音频本体），可显示波形但不可播放/混音
   wave: null, waveCtx: null, mask: null, wrap: null
 };
 const btnAudio = document.getElementById('btn-audio');
@@ -1011,7 +1012,7 @@ function flashHint(msg) {
   hintEl.textContent = msg; hintEl.style.color = '#8fd0ff';
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => {
-    hintEl.textContent = '空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · 双击轨道空白处添加关键帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转 · 🎙 导入口播对齐节奏 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做';
+    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · 双击轨道空白处添加关键帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转 · 🎙 导入口播对齐节奏 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程';
     hintEl.style.color = '';
   }, 7000);
 }
@@ -1061,6 +1062,7 @@ async function importAudio(file) {
     document.getElementById('exp-mix-row').style.display = 'flex';
     renderTimeline();
     syncAudioTime();
+    scheduleAutosave();
     flashHint('已导入口播：「' + file.name + '」 ' + decoded.duration.toFixed(1) + 's — 波形已显示在时间轴，播放同步、点击波形可跳转。动画时长已调整为 ' + need + 's');
   } catch (err) {
     alert('音频解码失败：' + err.message);
@@ -1072,9 +1074,11 @@ function removeAudio() {
   if (audioState.url) URL.revokeObjectURL(audioState.url);
   audioState.ready = false; audioState.peaks = null;
   audioState.el = null; audioState.url = null; audioState.name = ''; audioState.duration = 0;
+  audioState.metaOnly = false;
   audioChip.style.display = 'none';
   document.getElementById('exp-mix-row').style.display = 'none';
   renderTimeline();
+  scheduleAutosave();
   flashHint('已移除口播音频');
 }
 
@@ -1121,15 +1125,15 @@ function buildTimeline() {
   const audioRow = document.createElement('div');
   audioRow.className = 'tl-row audio-row';
   audioRow.style.height = AUDIO_ROW_H + 'px';
-  audioRow.innerHTML = `
+    audioRow.innerHTML = `
     <div class="tl-name">
-      <span class="tlabel">${audioState.ready ? '🎙 ' + audioState.name : '🎙 音频口播'}</span>
-      ${audioState.ready ? `<span class="audio-dur">${audioState.duration.toFixed(2)}s</span>` : ''}
+      <span class="tlabel">${audioState.name ? '🎙 ' + audioState.name : '🎙 音频口播'}</span>
+      ${audioState.name ? `<span class="audio-dur">${audioState.duration.toFixed(2)}s</span>` : ''}
     </div>
     <div id="audio-wave-wrap">
       <canvas id="audio-wave"></canvas>
       <div id="audio-wave-mask"></div>
-      <div id="audio-wave-empty" ${audioState.ready ? 'style="display:none"' : ''}>🎙 <span>导入口播音频 — 波形显示于此，播放同步、点击跳转、对齐关键帧节奏</span></div>
+      <div id="audio-wave-empty" ${audioState.name ? 'style="display:none"' : ''}>🎙 <span>导入口播音频 — 波形显示于此，播放同步、点击跳转、对齐关键帧节奏</span></div>
     </div>`;
   tlContent.appendChild(audioRow);
   audioState.wave = audioRow.querySelector('#audio-wave');
@@ -1235,7 +1239,7 @@ function renderDiamonds() {
 function renderTimeline() { layoutTimeline(); drawRuler(); renderAudioWave(); renderDiamonds(); updateKfButtons(); syncAudioTime(); }
 
 function renderAudioWave() {
-  if (!audioState.ready || !audioState.waveCtx) return;
+  if (!audioState.peaks || !audioState.waveCtx) return;
   const ctx = audioState.waveCtx;
   const w = audioState.wave.width, h = AUDIO_ROW_H;
   ctx.clearRect(0, 0, w, h);
@@ -1267,6 +1271,7 @@ function seek(t, pause = true) {
   if (pause) setPlaying(false);
   syncAudioTime();
   applyAll(state.time);
+  scheduleAutosave(); // 播放头位置也随工程自动保存
 }
 
 function bindTimelineEvents() {
@@ -1418,7 +1423,7 @@ document.getElementById('btn-start').addEventListener('click', () => seek(0));
 document.getElementById('btn-end').addEventListener('click', () => seek(state.duration));
 document.getElementById('btn-prevf').addEventListener('click', () => seek(state.time - 1 / PREVIEW_FPS));
 document.getElementById('btn-nextf').addEventListener('click', () => seek(state.time + 1 / PREVIEW_FPS));
-document.getElementById('chk-loop').addEventListener('change', e => { state.loop = e.target.checked; });
+document.getElementById('chk-loop').addEventListener('change', e => { state.loop = e.target.checked; scheduleAutosave(); });
 document.getElementById('inp-duration').addEventListener('change', e => {
   snapshot();
   state.duration = Math.min(300, Math.max(1, parseFloat(e.target.value) || 14));
@@ -1426,7 +1431,7 @@ document.getElementById('inp-duration').addEventListener('change', e => {
   renderTimeline(); seek(Math.min(state.time, state.duration));
 });
 document.getElementById('inp-zoom').addEventListener('input', e => {
-  state.px = +e.target.value; renderTimeline(); updatePlayhead();
+  state.px = +e.target.value; renderTimeline(); updatePlayhead(); scheduleAutosave();
 });
 document.getElementById('btn-key-all').addEventListener('click', () => {
   snapshot();
@@ -1482,6 +1487,7 @@ function setView(mode) {
     ? '自由视角 · 拖拽旋转 / 滚轮缩放 / 右键平移（不影响关键帧）'
     : '摄像机视角 · 按关键帧动画渲染';
   applyAll(state.time);
+  scheduleAutosave();
 }
 btnView.addEventListener('click', () => setView(state.view === 'camera' ? 'free' : 'camera'));
 
@@ -1841,10 +1847,12 @@ function updateSafeFrame() {
 document.getElementById('btn-grid').addEventListener('click', () => {
   grid.visible = !grid.visible;
   document.getElementById('btn-grid').classList.toggle('on', grid.visible);
+  scheduleAutosave();
 });
 document.getElementById('btn-frame').addEventListener('click', () => {
   const hidden = safeFrame.classList.toggle('hidden');
   document.getElementById('btn-frame').classList.toggle('on', !hidden);
+  scheduleAutosave();
 });
 const _expResEl = document.getElementById('exp-res');
 const _expWEl = document.getElementById('exp-w');
@@ -1854,6 +1862,210 @@ if (_expWEl) _expWEl.addEventListener('change', updateSafeFrame);
 if (_expHEl) _expHEl.addEventListener('change', updateSafeFrame);
 window.addEventListener('resize', updateSafeFrame);
 updateSafeFrame();
+
+// ---------------------------------------------------------------------------
+// 12. 工程管理：自动保存（localStorage）+ 导出/导入 .json 工程文件
+//     任何编辑（关键帧/时长/设置/视角/网格/音频元数据）都会防抖自动保存，
+//     刷新页面自动恢复；「保存工程」可下载 .json 备份/分享，「打开工程」随时调用。
+// ---------------------------------------------------------------------------
+const STORAGE_KEY = 'axis-switching-workbench-project';
+let autosaveTimer = null;
+
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(saveProjectToStorage, 600);
+}
+
+function serializeProject() {
+  return {
+    app: 'axis-switching-workbench',
+    version: 1,
+    savedAt: new Date().toISOString(),
+    duration: state.duration,
+    time: +state.time.toFixed(3),
+    loop: state.loop,
+    px: state.px,
+    view: state.view,
+    lookAtTarget: state.lookAtTarget,
+    gridVisible: grid.visible,
+    frameVisible: !safeFrame.classList.contains('hidden'),
+    keys: state.keys,
+    audio: (audioState.peaks && audioState.peaks.length) ? {
+      name: audioState.name,
+      duration: audioState.duration,
+      peaks: Array.from(audioState.peaks), // 仅波形元数据，音频本体需重新导入才能播放/混音
+    } : null,
+  };
+}
+
+function saveProjectToStorage() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeProject())); }
+  catch (e) { /* 存储配额不足时静默失败，不影响工作台 */ }
+}
+
+function sanitizeProject(data) {
+  if (!data || typeof data !== 'object' || data.app !== 'axis-switching-workbench' ||
+      !data.keys || typeof data.keys !== 'object')
+    throw new Error('文件缺少工程标识（app/version/keys），可能不是本工作台的工程文件');
+  const p = {
+    duration: Math.min(300, Math.max(1, +data.duration || 14)),
+    time: 0, px: Math.min(500, Math.max(30, +data.px || 95)),
+    loop: data.loop !== false,
+    view: data.view === 'free' ? 'free' : 'camera',
+    lookAtTarget: data.lookAtTarget !== false,
+    gridVisible: data.gridVisible !== false,
+    frameVisible: data.frameVisible !== false,
+    keys: {}, audio: null,
+  };
+  p.time = Math.min(p.duration, Math.max(0, +data.time || 0));
+  for (const id in data.keys) {
+    const tr = TRACK_MAP[id];
+    if (!tr || !Array.isArray(data.keys[id])) continue;
+    const arr = [];
+    for (const k of data.keys[id]) {
+      const t = +k.t, v = +k.v;
+      if (!isFinite(t) || !isFinite(v)) continue;
+      let cv = Math.min(tr.max, Math.max(tr.min, v));
+      if (tr.integer) cv = Math.round(cv);
+      const interp = (k.interp === 'linear' || k.interp === 'step') ? k.interp : (tr.seg ? 'step' : 'smooth');
+      arr.push({ t: Math.min(p.duration, Math.max(0, t)), v: cv, interp });
+    }
+    arr.sort((a, b) => a.t - b.t);
+    p.keys[id] = arr;
+  }
+  if (data.audio && Array.isArray(data.audio.peaks) && data.audio.peaks.length) {
+    p.audio = {
+      name: String(data.audio.name || '音频'),
+      duration: Math.max(0, +data.audio.duration || 0),
+      peaks: data.audio.peaks.slice(0, 4000).map(Number).filter(n => isFinite(n)),
+    };
+  }
+  return p;
+}
+
+function restoreAudioMeta(meta) {
+  if (meta && meta.peaks && meta.peaks.length) {
+    audioState.name = meta.name;
+    audioState.duration = meta.duration;
+    audioState.peaks = new Float32Array(meta.peaks);
+    audioState.metaOnly = true;
+    audioChip.style.display = 'inline-flex';
+    document.getElementById('audio-chip-name').textContent = meta.name;
+    document.getElementById('audio-chip-dur').textContent = meta.duration.toFixed(1) + 's';
+    document.getElementById('exp-mix-row').style.display = 'none'; // 无音频本体，不可混音
+  } else {
+    audioState.name = ''; audioState.duration = 0; audioState.peaks = null; audioState.metaOnly = false;
+    audioChip.style.display = 'none';
+    document.getElementById('exp-mix-row').style.display = 'none';
+  }
+}
+
+function applyProjectData(data) {
+  const p = sanitizeProject(data);
+  state.duration = p.duration;
+  state.time = p.time;
+  state.loop = p.loop;
+  state.px = p.px;
+  state.lookAtTarget = p.lookAtTarget;
+  state.selected = null;
+  state.keys = p.keys;
+  closeKfEditor();
+  restoreAudioMeta(p.audio);
+  document.getElementById('inp-duration').value = p.duration;
+  document.getElementById('inp-zoom').value = p.px;
+  document.getElementById('chk-loop').checked = p.loop;
+  const lookAt = document.getElementById('chk-lookat');
+  if (lookAt) lookAt.checked = p.lookAtTarget;
+  grid.visible = p.gridVisible;
+  document.getElementById('btn-grid').classList.toggle('on', p.gridVisible);
+  safeFrame.classList.toggle('hidden', !p.frameVisible);
+  document.getElementById('btn-frame').classList.toggle('on', p.frameVisible);
+  setView(p.view);
+  return p;
+}
+
+function exportProjectFile() {
+  const blob = new Blob([JSON.stringify(serializeProject(), null, 2)], { type: 'application/json' });
+  const d = new Date(), pad = n => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+  downloadBlob(blob, `axis-switching_工程_${stamp}.json`);
+  const keyCount = Object.values(state.keys).reduce((s, a) => s + a.length, 0);
+  flashHint(`💾 已导出工程文件（${state.duration}s · ${keyCount} 个关键帧）— 可随时通过「打开工程」或拖拽恢复`);
+}
+
+async function importProjectFile(file) {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const p = applyProjectData(data);
+    undoStack.length = 0; redoStack.length = 0;
+    renderTimeline();
+    applyAll(state.time);
+    updateUndoButtons();
+    scheduleAutosave();
+    const keyCount = Object.values(p.keys).reduce((s, a) => s + a.length, 0);
+    flashHint(`📂 已打开工程「${file.name}」— ${p.duration}s · ${keyCount} 个关键帧`);
+  } catch (err) {
+    alert('工程文件读取失败：' + err.message);
+  }
+}
+
+function newProject() {
+  if (!confirm('新建工程将清空当前全部关键帧与设置，并恢复默认演示动画。\n建议先点击「保存工程」备份当前内容。确定继续？')) return;
+  const defDur = parseFloat(document.getElementById('inp-duration').defaultValue) || 12;
+  const defPx = parseFloat(document.getElementById('inp-zoom').defaultValue) || 95;
+  removeAudio();
+  undoStack.length = 0; redoStack.length = 0;
+  state.duration = defDur; state.time = 0; state.loop = true; state.px = defPx;
+  state.view = 'camera'; state.lookAtTarget = true; state.selected = null;
+  for (const tr of TRACKS) { state.statics[tr.id] = tr.def; state.keys[tr.id] = []; }
+  seedDemo();
+  document.getElementById('inp-duration').value = defDur;
+  document.getElementById('inp-zoom').value = defPx;
+  document.getElementById('chk-loop').checked = true;
+  const lookAt = document.getElementById('chk-lookat');
+  if (lookAt) lookAt.checked = true;
+  grid.visible = true; document.getElementById('btn-grid').classList.add('on');
+  safeFrame.classList.remove('hidden'); document.getElementById('btn-frame').classList.add('on');
+  setView('camera');
+  renderTimeline();
+  applyAll(state.time);
+  updateUndoButtons();
+  scheduleAutosave();
+  flashHint('🗑 已新建工程（恢复默认演示动画）');
+}
+
+function tryRestoreAutosave() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    applyProjectData(JSON.parse(raw));
+    flashHint('已自动恢复上次的工程（关键帧/时长/设置均已保存）');
+    return true;
+  } catch (e) {
+    console.warn('自动恢复失败：', e);
+    return false;
+  }
+}
+
+document.getElementById('btn-project-save').addEventListener('click', exportProjectFile);
+document.getElementById('btn-project-open').addEventListener('click', () => document.getElementById('file-project').click());
+document.getElementById('file-project').addEventListener('change', () => {
+  const f = document.getElementById('file-project').files[0];
+  if (f) importProjectFile(f);
+  document.getElementById('file-project').value = '';
+});
+document.getElementById('btn-project-new').addEventListener('click', newProject);
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => {
+  e.preventDefault();
+  const f = [...((e.dataTransfer && e.dataTransfer.files) || [])].find(f => /\.json$/i.test(f.name));
+  if (f) importProjectFile(f);
+});
+window.addEventListener('beforeunload', saveProjectToStorage);
+
+// 启动时自动恢复上次工程（必须在 buildTimeline() 之前执行，让时间轴按恢复后的状态构建）
+tryRestoreAutosave();
 
 {
   const splitter = document.getElementById('splitter');
