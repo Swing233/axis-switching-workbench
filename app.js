@@ -754,6 +754,21 @@ function deleteSelection() { // 批量删除所有选中的关键帧（一次快
   renderTimeline(); applyAll(state.time);
 }
 
+function setSelectionInterp(interp) { // 批量修改选中关键帧的插值类型（一次快照，可整体撤回）
+  if (!['smooth', 'linear', 'step'].includes(interp)) return;
+  if (!state.sel.size) { flashHint('先选中关键帧（点击或框选多选），再选择插值类型'); return; }
+  snapshot();
+  let n = 0;
+  for (const key of state.sel) {
+    const [id, i] = key.split(':');
+    const k = keysOf(id)[+i];
+    if (k) { k.interp = interp; n++; }
+  }
+  renderTimeline(); applyAll(state.time);
+  const name = { smooth: '平滑（贝塞尔）', linear: '线性', step: '阶梯（保持）' }[interp];
+  flashHint(`已把 ${n} 个关键帧的插值改为「${name}」（⌘Z 可撤回）`);
+}
+
 // --- 复制 / 剪切 / 粘贴（与框选多选配合，支持批量） ---
 let kfClipboard = null; // [{id, t, v, interp}]，t 为复制时刻的原始时间
 function copySelection() {
@@ -781,7 +796,7 @@ function pasteSelection() { // 粘贴到当前播放头：保持各帧相对最�
   let pasted = 0;
   for (const item of kfClipboard) {
     const t = snapToFrame(Math.max(0, Math.min(state.duration, base + (item.t - anchorT))));
-    upsertKey(item.id, t, item.v, item.interp); // 同位置已有帧则覆盖其值
+    upsertKey(item.id, t, item.v, 'linear'); // 粘贴默认线性插值：同值帧之间数值保持不变，可再用「批量插值」改回
     const idx = keyIndexAt(item.id, t);
     if (idx >= 0) state.sel.add(selKey(item.id, idx)); // 粘贴后自动选中新帧，可立即整组拖动
     pasted++;
@@ -1086,7 +1101,7 @@ function flashHint(msg) {
   hintEl.textContent = msg; hintEl.style.color = '#8fd0ff';
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => {
-    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴关键帧（粘贴到播放头） · 双击轨道空白处添加关键帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转（吸附帧） · Alt+滚轮 缩放时间轴 · 🎙 导入口播对齐节奏 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程';
+    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴（粘贴默认线性） · 框选后可批量改插值 · 双击轨道空白处加帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转（吸附帧） · Alt+滚轮 缩放时间轴 · 🎙 导入口播 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程 · ❓ 帮助看板';
     hintEl.style.color = '';
   }, 7000);
 }
@@ -1591,6 +1606,11 @@ document.getElementById('btn-del-key').addEventListener('click', () => {
 document.getElementById('btn-paste-key').addEventListener('click', () => {
   pasteSelection();
 });
+document.getElementById('sel-interp').addEventListener('change', e => {
+  const v = e.target.value;
+  if (v) setSelectionInterp(v);
+  e.target.value = ''; // 复位占位项，便于连续选择同一类型
+});
 document.getElementById('btn-clear-all').addEventListener('click', () => {
   const total = TRACKS.reduce((s, tr) => s + keysOf(tr.id).length, 0);
   if (total === 0) { flashHint('当前没有任何关键帧'); return; }
@@ -1604,10 +1624,20 @@ document.getElementById('btn-clear-all').addEventListener('click', () => {
   flashHint(`已清空全部 ${total} 个关键帧`);
 });
 
+// --- 帮助看板（功能总览 + 快捷键速查） ---
+const helpOverlay = document.getElementById('help-overlay');
+function toggleHelp(show) {
+  helpOverlay.style.display = show ? 'flex' : 'none';
+}
+document.getElementById('btn-help').addEventListener('click', () => toggleHelp(true));
+document.getElementById('help-close').addEventListener('click', () => toggleHelp(false));
+helpOverlay.addEventListener('click', e => { if (e.target === helpOverlay) toggleHelp(false); });
+
 window.addEventListener('keydown', e => {
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.code === 'KeyZ') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if (mod && e.code === 'KeyY') { e.preventDefault(); redo(); return; }
+  if (e.key === 'Escape' && helpOverlay.style.display === 'flex') { toggleHelp(false); return; } // 帮助看板优先关闭（不受输入框焦点影响）
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   if (mod && e.code === 'KeyC') { e.preventDefault(); copySelection(); return; }
   if (mod && e.code === 'KeyX') { e.preventDefault(); cutSelection(); return; }
