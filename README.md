@@ -10,7 +10,7 @@
 - **关键帧动画**：10 条相机轨道 + 9 条参数轨道，Catmull-Rom 平滑 / 线性 / 阶梯插值
 - **时间轴编辑器**：拖拽 scrub 自动创建关键帧、菱形关键帧拖拽/编辑、播放头 scrub
 - **多视角渲染**：玻璃材质喷射、热力图着色、扫描平面截面、24 线笼、带实时孔口的孔板
-- **导出**：PNG 序列（ZIP）、WebM 视频（Whammy）、实时语音解说（MediaRecorder 混音）
+- **导出**：MP4 视频（H.264，全平台可预览）、WebM 视频（VP9）、PNG 序列（ZIP）；支持导入口播混音（实时录制）
 
 ## 使用
 
@@ -34,13 +34,13 @@ python3 -m http.server 8080 --directory .
 | 播放 / 暂停 | 空格 或 播放按钮 |
 | 撤回 / 重做 | ⌘Z / Ctrl+Z 撤回，⌘⇧Z / Ctrl+Shift+Z 或 Ctrl+Y 重做（或工具栏 ↩ 撤回 / ↪ 重做按钮）；支持全部关键帧修改操作 |
 | 自由视角 → 📌 同步视角 | 自由视角摆好机位（旋转/缩放/右键平移）后点击，把当前视口机位写入播放头时间的关键帧；取消"看向视觉中心"时还会写入旋转角 |
-| 导出 | 顶部工具栏 → 导出（PNG 序列 / WebM / 语音解说） |
+| 导出 | 顶部工具栏 → 导出动画（MP4 H.264 / WebM VP9 / PNG 序列，浏览器原生录制，导出的视频可直接预览） |
 
 ## 技术栈
 
 - Three.js r160（本地 vendored，无需 npm）
 - 纯 vanilla JS 关键帧引擎（Catmull-Rom / 线性 / 阶梯）
-- JSZip（PNG 序列导出）+ Whammy（WebM 导出）+ MediaRecorder（语音混音）
+- JSZip（PNG 序列导出）+ MediaRecorder（MP4 H.264 / WebM VP9 实时录制、口播混音）
 
 ## 文件结构
 
@@ -48,7 +48,7 @@ python3 -m http.server 8080 --directory .
 axis-switching-workbench/
 ├── index.html          # 工作台 UI（时间轴 / 关键帧编辑器 / 导出面板）
 ├── app.js              # 核心：物理模型移植 + 场景重建 + 关键帧系统 + 导出管线
-└── assets/vendor/      # 离线依赖：three.module.js / OrbitControls / JSZip / Whammy
+└── assets/vendor/      # 离线依赖：three.module.js / OrbitControls / JSZip
 ```
 
 ## 在线演示
