@@ -239,6 +239,7 @@ const state = {
   view: 'camera',
   lookAtTarget: true,
   selected: null,
+  sel: new Set(), // 多选集合，元素为 "trackId:index"；selected 在 size===1 时由它派生
   statics: {},
   keys: {},
 };
@@ -711,7 +712,43 @@ function upsertKey(id, t, v, interp) {
 function removeKey(id, index) {
   if (index < 0) return;
   state.keys[id].splice(index, 1);
+  state.sel.delete(id + ':' + index);
   if (state.selected && state.selected.trackId === id) state.selected = null;
+}
+
+// --- 多选（框选）辅助 ---
+function selKey(id, i) { return id + ':' + i; }
+function syncSelected() { // selected 由 sel 派生：仅单选时存在
+  state.selected = null;
+  if (state.sel.size === 1) {
+    const [id, i] = [...state.sel][0].split(':');
+    state.selected = { trackId: id, index: +i };
+  }
+}
+function clearSelection() { state.sel.clear(); state.selected = null; }
+function rebuildSelection() { // 剔除已被删除/失效的选中项（撤销、删除后调用）
+  const ns = new Set();
+  for (const key of state.sel) {
+    const [id, i] = key.split(':');
+    if (keysOf(id)[+i]) ns.add(key);
+  }
+  state.sel = ns; syncSelected();
+}
+function deleteSelection() { // 批量删除所有选中的关键帧（一次快照，可整体撤回）
+  if (!state.sel.size) return;
+  snapshot();
+  const byTrack = {};
+  for (const key of state.sel) {
+    const [id, i] = key.split(':');
+    (byTrack[id] = byTrack[id] || []).push(+i);
+  }
+  for (const id in byTrack) {
+    byTrack[id].sort((a, b) => b - a); // 索引降序删除，避免错位
+    for (const i of byTrack[id]) removeKey(id, i);
+  }
+  clearSelection();
+  closeKfEditor();
+  renderTimeline(); applyAll(state.time);
 }
 
 // ---------------------------------------------------------------------------
@@ -747,10 +784,7 @@ function restoreKeys(snap) {
   return out;
 }
 function afterKeysChanged() {
-  if (state.selected) {
-    const k = keysOf(state.selected.trackId)[state.selected.index];
-    if (!k) state.selected = null;
-  }
+  rebuildSelection();
   closeKfEditor();
   renderTimeline();
   applyAll(state.time);
@@ -1230,7 +1264,7 @@ function renderDiamonds() {
       d.style.left = (k.t * state.px) + 'px';
       d.dataset.track = tr.id; d.dataset.index = i;
       d.title = `${tr.label} · ${k.t.toFixed(2)}s = ${(+k.v).toFixed(2)}（${k.interp}）`;
-      if (state.selected && state.selected.trackId === tr.id && state.selected.index === i)
+      if (state.sel.has(tr.id + ':' + i))
         d.classList.add('selected');
       lane.appendChild(d);
     });
@@ -1290,11 +1324,17 @@ function bindTimelineEvents() {
     if (!d) return;
     e.stopPropagation();
     const trackId = d.dataset.track, index = +d.dataset.index;
-    state.selected = { trackId, index };
-    tlContent.querySelectorAll('.diamond.selected').forEach(x => x.classList.remove('selected'));
-    d.classList.add('selected');
+    if (!state.sel.has(selKey(trackId, index))) { // 点未选中的帧 → 单选
+      state.sel.clear(); state.sel.add(selKey(trackId, index)); syncSelected();
+      renderDiamonds();
+    }
     beginGesture();
-    drag = { trackId, index, moved: false };
+    drag = { trackId, index, moved: false,
+      group: [...state.sel].map(key => {
+        const [id, i] = key.split(':');
+        const kf = keysOf(id)[+i];
+        return kf ? { id, i: +i, k: kf, initT: kf.t } : null;
+      }).filter(Boolean) };
     try { d.setPointerCapture(e.pointerId); } catch (_) {}
   });
   tlContent.addEventListener('pointermove', e => {
@@ -1306,14 +1346,26 @@ function bindTimelineEvents() {
     const k = keysOf(drag.trackId)[drag.index];
     if (!k) { drag = null; return; }
     if (!drag.moved) snapshot();
-    k.t = t;
+    const main = drag.group.find(g => g.id === drag.trackId && g.i === drag.index);
+    const delta = main ? t - main.initT : 0;
+    for (const g of drag.group) { // 整组同步移动
+      if (!g.k) continue;
+      g.k.t = Math.min(state.duration, Math.max(0, g.initT + delta));
+      const el = laneEls[g.id].querySelector(`.diamond[data-index="${g.i}"]`);
+      if (el) el.style.left = (g.k.t * state.px) + 'px';
+    }
     drag.moved = true;
-    const el = lane.querySelector(`.diamond[data-index="${drag.index}"]`);
-    if (el) el.style.left = (t * state.px) + 'px';
   });
   tlContent.addEventListener('pointerup', () => {
     if (drag && drag.moved) {
-      keysOf(drag.trackId).sort((a, b) => a.t - b.t);
+      for (const g of drag.group) if (g.k) keysOf(g.id).sort((a, b) => a.t - b.t);
+      const ns = new Set(); // 移动后 index 可能变化，按对象引用重建选择
+      for (const g of drag.group) {
+        if (!g.k) continue;
+        const idx = keysOf(g.id).indexOf(g.k);
+        if (idx >= 0) ns.add(selKey(g.id, idx));
+      }
+      state.sel = ns; syncSelected();
       renderTimeline(); applyAll(state.time);
     }
     drag = null;
@@ -1333,24 +1385,62 @@ function bindTimelineEvents() {
     }
   });
 
-  let laneScrub = null;
+  // 框选：在轨道空白处按下拖拽 >5px 进入框选模式，松开后选中矩形内所有关键帧
+  let laneScrub = null, marquee = null;
   const laneSeek = (e, lane) => {
     const rect = lane.getBoundingClientRect();
     seek((e.clientX - rect.left) / state.px);
   };
+  const marqueeEl = document.getElementById('marquee');
+  const updateMarquee = (cx, cy) => {
+    const rect = tlContent.getBoundingClientRect();
+    const x1 = Math.min(marquee.x0, cx) - rect.left, y1 = Math.min(marquee.y0, cy) - rect.top;
+    const x2 = Math.max(marquee.x0, cx) - rect.left, y2 = Math.max(marquee.y0, cy) - rect.top;
+    marqueeEl.style.display = 'block';
+    marqueeEl.style.left = x1 + 'px'; marqueeEl.style.top = y1 + 'px';
+    marqueeEl.style.width = (x2 - x1) + 'px'; marqueeEl.style.height = (y2 - y1) + 'px';
+  };
+  const finishMarquee = e => {
+    const rect = tlContent.getBoundingClientRect();
+    const l = Math.min(marquee.x0, e.clientX) - rect.left, top = Math.min(marquee.y0, e.clientY) - rect.top;
+    const r = Math.max(marquee.x0, e.clientX) - rect.left, bot = Math.max(marquee.y0, e.clientY) - rect.top;
+    const hit = new Set();
+    tlContent.querySelectorAll('.diamond').forEach(d => {
+      const dr = d.getBoundingClientRect();
+      const cx = dr.left + dr.width / 2 - rect.left, cy = dr.top + dr.height / 2 - rect.top;
+      if (cx >= l && cx <= r && cy >= top && cy <= bot) hit.add(selKey(d.dataset.track, +d.dataset.index));
+    });
+    if (!e.shiftKey) state.sel.clear(); // 按住 Shift 框选 = 追加选择
+    for (const key of hit) state.sel.add(key);
+    syncSelected();
+    marqueeEl.style.display = 'none';
+    renderDiamonds();
+  };
   tlContent.addEventListener('pointerdown', e => {
     if (e.target.closest('.diamond')) return;
     if (e.target.closest('#audio-wave-wrap')) return;
+    if (e.target.closest('.tl-name') || e.target.closest('.tl-corner')) return;
     const lane = e.target.closest('.tl-lane');
     if (!lane) return;
     laneScrub = lane;
     try { lane.setPointerCapture(e.pointerId); } catch (_) {}
-    laneSeek(e, lane);
+    laneSeek(e, lane); // 点击即跳转播放头（保留原行为）
+    marquee = { x0: e.clientX, y0: e.clientY, active: false };
   });
   tlContent.addEventListener('pointermove', e => {
     if (laneScrub) laneSeek(e, laneScrub);
+    if (!marquee) return;
+    if (!marquee.active && Math.hypot(e.clientX - marquee.x0, e.clientY - marquee.y0) > 5) {
+      marquee.active = true;
+      laneScrub = null; // 进入框选后停止播放头跟随
+    }
+    if (marquee.active) updateMarquee(e.clientX, e.clientY);
   });
-  tlContent.addEventListener('pointerup', () => { laneScrub = null; });
+  tlContent.addEventListener('pointerup', e => {
+    if (marquee && marquee.active) finishMarquee(e);
+    marquee = null;
+    laneScrub = null;
+  });
 }
 
 // --- 关键帧编辑弹窗 ---
@@ -1368,7 +1458,7 @@ function openKfEditor(trackId, index, x, y) {
   const px = Math.min(x, window.innerWidth - 230);
   const py = Math.min(y, window.innerHeight - 220);
   kfEditor.style.left = px + 'px'; kfEditor.style.top = py + 'px';
-  state.selected = { trackId, index };
+  state.sel.clear(); state.sel.add(selKey(trackId, index)); syncSelected();
   renderDiamonds();
 }
 function closeKfEditor() { kfEditor.style.display = 'none'; editing = null; }
@@ -1379,7 +1469,7 @@ document.getElementById('kf-time').addEventListener('change', e => {
   k.t = Math.min(state.duration, Math.max(0, parseFloat(e.target.value) || 0));
   keysOf(editing.trackId).sort((a, b) => a.t - b.t);
   editing.index = keysOf(editing.trackId).indexOf(k);
-  state.selected = { ...editing };
+  state.sel.clear(); state.sel.add(selKey(editing.trackId, editing.index)); syncSelected();
   renderTimeline(); applyAll(state.time);
 });
 document.getElementById('kf-value').addEventListener('change', e => {
@@ -1439,11 +1529,7 @@ document.getElementById('btn-key-all').addEventListener('click', () => {
   renderTimeline(); applyAll(state.time);
 });
 document.getElementById('btn-del-key').addEventListener('click', () => {
-  if (state.selected) {
-    snapshot();
-    removeKey(state.selected.trackId, state.selected.index);
-    renderTimeline(); applyAll(state.time);
-  }
+  deleteSelection();
 });
 document.getElementById('btn-clear-all').addEventListener('click', () => {
   const total = TRACKS.reduce((s, tr) => s + keysOf(tr.id).length, 0);
@@ -1451,7 +1537,7 @@ document.getElementById('btn-clear-all').addEventListener('click', () => {
   if (!confirm(`确认删除全部 ${total} 个关键帧？（可用 ⌘Z 撤回）`)) return;
   snapshot();
   for (const tr of TRACKS) keysOf(tr.id).length = 0;
-  state.selected = null;
+  clearSelection();
   closeKfEditor();
   renderTimeline();
   applyAll(state.time);
@@ -1467,8 +1553,11 @@ window.addEventListener('keydown', e => {
   else if (e.key === 'ArrowLeft') seek(state.time - 1 / PREVIEW_FPS);
   else if (e.key === 'ArrowRight') seek(state.time + 1 / PREVIEW_FPS);
   else if (e.key === 'Delete' || e.key === 'Backspace') {
-    if (state.selected) { snapshot(); removeKey(state.selected.trackId, state.selected.index); renderTimeline(); applyAll(state.time); }
-  } else if (e.key === 'Escape') closeKfEditor();
+    deleteSelection();
+  } else if (e.key === 'Escape') {
+    closeKfEditor();
+    if (state.sel.size) { clearSelection(); renderDiamonds(); }
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -2098,7 +2187,7 @@ function applyProjectData(data) {
   state.loop = p.loop;
   state.px = p.px;
   state.lookAtTarget = p.lookAtTarget;
-  state.selected = null;
+  clearSelection();
   state.keys = p.keys;
   closeKfEditor();
   restoreAudioMeta(p.audio);
@@ -2148,7 +2237,7 @@ function newProject() {
   removeAudio();
   undoStack.length = 0; redoStack.length = 0;
   state.duration = defDur; state.time = 0; state.loop = true; state.px = defPx;
-  state.view = 'camera'; state.lookAtTarget = true; state.selected = null;
+  state.view = 'camera'; state.lookAtTarget = true; clearSelection();
   for (const tr of TRACKS) { state.statics[tr.id] = tr.def; state.keys[tr.id] = []; }
   seedDemo();
   document.getElementById('inp-duration').value = defDur;
