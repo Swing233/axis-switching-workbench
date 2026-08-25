@@ -361,6 +361,10 @@
         <option value="png">PNG 图像序列（ZIP 打包）</option>
       </select>
     </div>
+    <div class="frow" style="color:var(--dim);font-size:11.5px;line-height:1.5">
+      <span></span>
+      <span>MP4/WebM 无声导出采用 WebCodecs 精确编码，帧率严格等于所选值；混入口播时为实时录制，帧率由浏览器决定。</span>
+    </div>
     <div class="frow" id="exp-mix-row" style="display:none"><span>混入口播</span>
       <label style="flex:1;display:flex;align-items:center;gap:8px;color:var(--text);cursor:pointer;font-size:12.5px">
         <input type="checkbox" id="exp-mix" checked/> 将导入的口播音频合成进视频（实时录制模式）
