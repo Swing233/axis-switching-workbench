@@ -1455,9 +1455,8 @@ document.getElementById('btn-clear-all').addEventListener('click', () => {
 
 window.addEventListener('keydown', e => {
   const mod = e.metaKey || e.ctrlKey;
-  const k = e.key.toLowerCase();
-  if (mod && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
-  if (mod && k === 'y') { e.preventDefault(); redo(); return; }
+  if (mod && e.code === 'KeyZ') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+  if (mod && e.code === 'KeyY') { e.preventDefault(); redo(); return; }
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   if (e.code === 'Space') { e.preventDefault(); setPlaying(!state.playing); }
   else if (e.key === 'ArrowLeft') seek(state.time - 1 / PREVIEW_FPS);
