@@ -1726,8 +1726,55 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  updateSafeFrame();
 }
 new ResizeObserver(resize).observe(viewport);
+
+// ---------------------------------------------------------------------------
+// 预览辅助：导出画幅安全框 + 全局网格显示开关
+//   安全框是 DOM overlay（不进入 canvas，因此不会出现在导出视频中），
+//   按导出分辨率宽高比在视口中央等比缩放，虚线范围即最终输出画面。
+// ---------------------------------------------------------------------------
+const safeFrame = document.getElementById('safe-frame');
+const safeLabel = document.getElementById('safe-label');
+function currentExportSize() {
+  const r = document.getElementById('exp-res');
+  if (r && r.value === 'custom') {
+    return [
+      Math.max(16, +document.getElementById('exp-w').value || 1920),
+      Math.max(16, +document.getElementById('exp-h').value || 1080),
+    ];
+  }
+  if (r) { const p = r.value.split('x').map(Number); if (p.length === 2) return p; }
+  return [1920, 1080];
+}
+function updateSafeFrame() {
+  const wrap = document.getElementById('viewport-wrap');
+  const ww = wrap.clientWidth, wh = wrap.clientHeight;
+  if (!ww || !wh) return;
+  const [ew, eh] = currentExportSize();
+  safeLabel.textContent = ew + '×' + eh;
+  let fw = ww * 0.94, fh = fw * eh / ew;
+  if (fh > wh * 0.94) { fh = wh * 0.94; fw = fh * ew / eh; }
+  safeFrame.style.width = fw + 'px';
+  safeFrame.style.height = fh + 'px';
+}
+document.getElementById('btn-grid').addEventListener('click', () => {
+  grid.visible = !grid.visible;
+  document.getElementById('btn-grid').classList.toggle('on', grid.visible);
+});
+document.getElementById('btn-frame').addEventListener('click', () => {
+  const hidden = safeFrame.classList.toggle('hidden');
+  document.getElementById('btn-frame').classList.toggle('on', !hidden);
+});
+const _expResEl = document.getElementById('exp-res');
+const _expWEl = document.getElementById('exp-w');
+const _expHEl = document.getElementById('exp-h');
+if (_expResEl) _expResEl.addEventListener('change', updateSafeFrame);
+if (_expWEl) _expWEl.addEventListener('change', updateSafeFrame);
+if (_expHEl) _expHEl.addEventListener('change', updateSafeFrame);
+window.addEventListener('resize', updateSafeFrame);
+updateSafeFrame();
 
 {
   const splitter = document.getElementById('splitter');
