@@ -714,8 +714,73 @@ function removeKey(id, index) {
   if (state.selected && state.selected.trackId === id) state.selected = null;
 }
 
+// ---------------------------------------------------------------------------
+// 4a. 撤销 / 重做（快照式，作用于全部关键帧轨道 state.keys）
+//     每次破坏性修改前 snapshot() 一次；同一手势（拖动数值/菱形/滑杆）内
+//     自动合并为一步，避免一次拖动产生几十个撤销节点。
+// ---------------------------------------------------------------------------
+const MAX_UNDO = 50;
+const undoStack = [];
+const redoStack = [];
+let gestureId = 0;
+let snapGesture = -1;
+let lastSnapAt = 0;
+function beginGesture() { gestureId++; }
+function cloneKeys() {
+  const out = {};
+  for (const id in state.keys) out[id] = state.keys[id].map(k => ({ ...k }));
+  return out;
+}
+function snapshot() {
+  const now = Date.now();
+  if (snapGesture === gestureId && now - lastSnapAt < 500) return; // 同手势连续变更合并
+  snapGesture = gestureId; lastSnapAt = now;
+  undoStack.push(cloneKeys());
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack.length = 0;
+  updateUndoButtons();
+}
+function restoreKeys(snap) {
+  const out = {};
+  for (const id in state.keys) out[id] = (snap[id] || []).map(k => ({ ...k }));
+  return out;
+}
+function afterKeysChanged() {
+  if (state.selected) {
+    const k = keysOf(state.selected.trackId)[state.selected.index];
+    if (!k) state.selected = null;
+  }
+  closeKfEditor();
+  renderTimeline();
+  applyAll(state.time);
+  updateUndoButtons();
+}
+function undo() {
+  if (!undoStack.length) { flashHint('没有可撤回的操作'); return; }
+  redoStack.push(cloneKeys());
+  state.keys = restoreKeys(undoStack.pop());
+  snapGesture = -1; lastSnapAt = 0;
+  afterKeysChanged();
+  flashHint('↩ 已撤回');
+}
+function redo() {
+  if (!redoStack.length) { flashHint('没有可重做的操作'); return; }
+  undoStack.push(cloneKeys());
+  state.keys = restoreKeys(redoStack.pop());
+  snapGesture = -1; lastSnapAt = 0;
+  afterKeysChanged();
+  flashHint('↪ 已重做');
+}
+function updateUndoButtons() {
+  const u = document.getElementById('btn-undo');
+  const r = document.getElementById('btn-redo');
+  if (u) u.disabled = !undoStack.length;
+  if (r) r.disabled = !redoStack.length;
+}
+
 // 修改参数值 → 在当前播放头时间自动创建/更新关键帧
 function commitValue(tr, raw) {
+  snapshot();
   let val = parseFloat(raw);
   if (isNaN(val)) return;
   val = Math.min(tr.max, Math.max(tr.min, val));
@@ -732,6 +797,7 @@ function makeScrub(el, tr) {
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
+    beginGesture();
     scrub = { startX: e.clientX, startVal: currentValue(tr.id), moved: false, shift: e.shiftKey };
     el.classList.add('scrubbing');
     try { el.setPointerCapture(e.pointerId); } catch (_) {}
@@ -891,12 +957,14 @@ const panelInputs = {}; // id -> {range, num, kfBtn, segBtns?}
     const pi = panelInputs[tr.id];
     const commit = raw => commitValue(tr, raw);
     if (pi.range) {
+      pi.range.addEventListener('pointerdown', beginGesture);
       pi.range.addEventListener('input', e => commit(e.target.value));
       pi.num.addEventListener('change', e => commit(e.target.value));
       makeScrub(pi.num, tr);
     }
     if (pi.segs) pi.segs.forEach(b => b.addEventListener('click', () => commit(b.dataset.v)));
     pi.kfBtn.addEventListener('click', () => {
+      snapshot();
       const idx = keyIndexAt(tr.id, state.time);
       if (idx >= 0) removeKey(tr.id, idx);
       else upsertKey(tr.id, state.time, currentValue(tr.id));
@@ -943,7 +1011,7 @@ function flashHint(msg) {
   hintEl.textContent = msg; hintEl.style.color = '#8fd0ff';
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => {
-    hintEl.textContent = '空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · 双击轨道空白处添加关键帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转 · 🎙 导入口播对齐节奏';
+    hintEl.textContent = '空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · 双击轨道空白处添加关键帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转 · 🎙 导入口播对齐节奏 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做';
     hintEl.style.color = '';
   }, 7000);
 }
@@ -981,6 +1049,7 @@ async function importAudio(file) {
 
     const need = Math.max(state.duration, Math.ceil(decoded.duration));
     if (need !== state.duration) {
+      snapshot();
       state.duration = need;
       document.getElementById('inp-duration').value = need;
       for (const tr of TRACKS) keysOf(tr.id).forEach(k => { k.t = Math.min(k.t, state.duration); });
@@ -1097,6 +1166,7 @@ function buildTimeline() {
     laneEls[tr.id] = row.querySelector('.tl-lane');
     makeScrub(row.querySelector('.tval'), tr);
     row.querySelector('.kfbtn').addEventListener('click', () => {
+      snapshot();
       const idx = keyIndexAt(tr.id, state.time);
       if (idx >= 0) removeKey(tr.id, idx);
       else upsertKey(tr.id, state.time, currentValue(tr.id));
@@ -1218,6 +1288,7 @@ function bindTimelineEvents() {
     state.selected = { trackId, index };
     tlContent.querySelectorAll('.diamond.selected').forEach(x => x.classList.remove('selected'));
     d.classList.add('selected');
+    beginGesture();
     drag = { trackId, index, moved: false };
     try { d.setPointerCapture(e.pointerId); } catch (_) {}
   });
@@ -1229,6 +1300,7 @@ function bindTimelineEvents() {
     t = Math.min(state.duration, Math.max(0, t));
     const k = keysOf(drag.trackId)[drag.index];
     if (!k) { drag = null; return; }
+    if (!drag.moved) snapshot();
     k.t = t;
     drag.moved = true;
     const el = lane.querySelector(`.diamond[data-index="${drag.index}"]`);
@@ -1249,6 +1321,7 @@ function bindTimelineEvents() {
       const rect = lane.getBoundingClientRect();
       const t = Math.min(state.duration, Math.max(0, (e.clientX - rect.left) / state.px));
       const id = lane.dataset.lane;
+      snapshot();
       upsertKey(id, t, evalTrack(id, t));
       seek(t);
       renderTimeline();
@@ -1296,6 +1369,7 @@ function openKfEditor(trackId, index, x, y) {
 function closeKfEditor() { kfEditor.style.display = 'none'; editing = null; }
 document.getElementById('kf-time').addEventListener('change', e => {
   if (!editing) return;
+  snapshot();
   const k = keysOf(editing.trackId)[editing.index];
   k.t = Math.min(state.duration, Math.max(0, parseFloat(e.target.value) || 0));
   keysOf(editing.trackId).sort((a, b) => a.t - b.t);
@@ -1305,6 +1379,7 @@ document.getElementById('kf-time').addEventListener('change', e => {
 });
 document.getElementById('kf-value').addEventListener('change', e => {
   if (!editing) return;
+  snapshot();
   const tr = TRACK_MAP[editing.trackId];
   let val = parseFloat(e.target.value) || 0;
   val = Math.min(tr.max, Math.max(tr.min, val));
@@ -1313,11 +1388,13 @@ document.getElementById('kf-value').addEventListener('change', e => {
 });
 document.getElementById('kf-interp').addEventListener('change', e => {
   if (!editing) return;
+  snapshot();
   keysOf(editing.trackId)[editing.index].interp = e.target.value;
   renderTimeline(); applyAll(state.time);
 });
 document.getElementById('kf-delete').addEventListener('click', () => {
   if (!editing) return;
+  snapshot();
   removeKey(editing.trackId, editing.index);
   closeKfEditor(); renderTimeline(); applyAll(state.time);
 });
@@ -1343,6 +1420,7 @@ document.getElementById('btn-prevf').addEventListener('click', () => seek(state.
 document.getElementById('btn-nextf').addEventListener('click', () => seek(state.time + 1 / PREVIEW_FPS));
 document.getElementById('chk-loop').addEventListener('change', e => { state.loop = e.target.checked; });
 document.getElementById('inp-duration').addEventListener('change', e => {
+  snapshot();
   state.duration = Math.min(300, Math.max(1, parseFloat(e.target.value) || 14));
   for (const tr of TRACKS) keysOf(tr.id).forEach(k => { k.t = Math.min(k.t, state.duration); });
   renderTimeline(); seek(Math.min(state.time, state.duration));
@@ -1351,11 +1429,13 @@ document.getElementById('inp-zoom').addEventListener('input', e => {
   state.px = +e.target.value; renderTimeline(); updatePlayhead();
 });
 document.getElementById('btn-key-all').addEventListener('click', () => {
+  snapshot();
   for (const tr of TRACKS) upsertKey(tr.id, state.time, currentValue(tr.id));
   renderTimeline(); applyAll(state.time);
 });
 document.getElementById('btn-del-key').addEventListener('click', () => {
   if (state.selected) {
+    snapshot();
     removeKey(state.selected.trackId, state.selected.index);
     renderTimeline(); applyAll(state.time);
   }
@@ -1363,7 +1443,8 @@ document.getElementById('btn-del-key').addEventListener('click', () => {
 document.getElementById('btn-clear-all').addEventListener('click', () => {
   const total = TRACKS.reduce((s, tr) => s + keysOf(tr.id).length, 0);
   if (total === 0) { flashHint('当前没有任何关键帧'); return; }
-  if (!confirm(`确认删除全部 ${total} 个关键帧？（不可撤销）`)) return;
+  if (!confirm(`确认删除全部 ${total} 个关键帧？（可用 ⌘Z 撤回）`)) return;
+  snapshot();
   for (const tr of TRACKS) keysOf(tr.id).length = 0;
   state.selected = null;
   closeKfEditor();
@@ -1373,12 +1454,16 @@ document.getElementById('btn-clear-all').addEventListener('click', () => {
 });
 
 window.addEventListener('keydown', e => {
+  const mod = e.metaKey || e.ctrlKey;
+  const k = e.key.toLowerCase();
+  if (mod && k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+  if (mod && k === 'y') { e.preventDefault(); redo(); return; }
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   if (e.code === 'Space') { e.preventDefault(); setPlaying(!state.playing); }
   else if (e.key === 'ArrowLeft') seek(state.time - 1 / PREVIEW_FPS);
   else if (e.key === 'ArrowRight') seek(state.time + 1 / PREVIEW_FPS);
   else if (e.key === 'Delete' || e.key === 'Backspace') {
-    if (state.selected) { removeKey(state.selected.trackId, state.selected.index); renderTimeline(); applyAll(state.time); }
+    if (state.selected) { snapshot(); removeKey(state.selected.trackId, state.selected.index); renderTimeline(); applyAll(state.time); }
   } else if (e.key === 'Escape') closeKfEditor();
 });
 
@@ -1414,6 +1499,7 @@ function clampTrack(id, v) {
   return Math.min(tr.max, Math.max(tr.min, v));
 }
 function syncFreeViewToKeys() {
+  snapshot();
   const t = state.time;
   const set = (id, v) => upsertKey(id, t, clampTrack(id, v));
   set('camX', camera.position.x);
@@ -1439,6 +1525,11 @@ function syncFreeViewToKeys() {
   }, 2200);
 }
 btnSyncCam.addEventListener('click', syncFreeViewToKeys);
+
+// --- 撤销 / 重做按钮 ---
+document.getElementById('btn-undo').addEventListener('click', undo);
+document.getElementById('btn-redo').addEventListener('click', redo);
+updateUndoButtons();
 
 // ---------------------------------------------------------------------------
 // 10. 导出
