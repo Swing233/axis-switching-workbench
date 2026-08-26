@@ -33,6 +33,16 @@
     white-space:nowrap;
   }
   #topbar .sep{width:1px; height:22px; background:var(--line);}
+  #topbar select{
+    height:30px; padding:0 6px; font-size:12px; color:var(--text);
+    background:var(--panel2); border:1px solid var(--line); border-radius:6px; cursor:pointer; white-space:nowrap;
+  }
+  #topbar select:hover{border-color:var(--accent);}
+  #topbar input[type=color]{
+    width:34px; height:30px; padding:2px; border:1px solid var(--line); border-radius:6px;
+    background:var(--panel2); cursor:pointer;
+  }
+  #topbar input[type=color]:hover{border-color:var(--accent);}
   .tbtn{
     display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px;
     background:var(--panel2); color:var(--text); border:1px solid var(--line);
@@ -308,6 +318,14 @@
     <button id="btn-sync-cam" class="tbtn" title="把当前视口机位写入播放头时间的关键帧：自由视角摆好机位（旋转/缩放/右键平移）后点此，动画在该时刻即使用此视角">📌 同步视角</button>
     <button id="btn-grid" class="tbtn on" title="显示/隐藏全局参考网格">📐 网格</button>
     <button id="btn-frame" class="tbtn on" title="显示/隐藏最终导出视频画幅（安全框，虚线范围即导出画面）">🔲 画幅框</button>
+    <select id="sel-bg" title="切换预览与导出视频的背景色为纯色（纯黑 / 纯白 / 纯绿抠像等），或用右侧色板自定义任意颜色；背景会一并写入导出画面">
+      <option value="">🎨 背景</option>
+      <option value="#0b1526">深空蓝（默认）</option>
+      <option value="#000000">纯黑</option>
+      <option value="#ffffff">纯白</option>
+      <option value="#00b140">纯绿（抠像）</option>
+    </select>
+    <input type="color" id="bg-color" value="#0b1526" title="自定义背景颜色（实时生效，导出视频同步使用；纯色抠像建议关闭 📐 网格）"/>
     <button id="btn-audio" class="tbtn" title="导入外部音频（口播/配乐），在时间轴上显示波形并对齐关键帧节奏">🎙 导入口播</button>
     <input type="file" id="file-audio" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" hidden/>
     <div class="sep"></div>
@@ -471,6 +489,7 @@
         <li><b>📌 同步视角</b>：自由视角摆好机位后一键写入当前时间的关键帧</li>
         <li><b>📐 网格</b>：全局坐标轴参考网格显示开关</li>
         <li><b>🔲 画幅框</b>：显示最终导出视频的画面范围（虚线安全框）</li>
+        <li><b>🎨 背景色</b>：<em>新增</em>——顶栏「背景」下拉一键切换 深空蓝 / 纯黑 / 纯白 / 纯绿（抠像）等纯色背景，或右侧色板自定义任意颜色；背景实时生效并随导出视频一并输出（纯色抠像建议关闭 📐 网格）</li>
         <li><b>面板高度</b>：拖动时间线面板上边缘调整布局</li>
       </ul></div>
       <div class="hsec"><h4>🎙 音频与节奏</h4><ul>
