@@ -2167,6 +2167,38 @@ document.getElementById('btn-frame').addEventListener('click', () => {
   document.getElementById('btn-frame').classList.toggle('on', !hidden);
   scheduleAutosave();
 });
+// 背景色：预设下拉（深空蓝/纯黑/纯白/纯绿抠像）+ 自定义取色器，scene.background 实时生效并写入工程/导出
+const BG_PRESETS = {
+  '#0b1526': '深空蓝（默认）',
+  '#000000': '纯黑',
+  '#ffffff': '纯白',
+  '#00b140': '纯绿（抠像）',
+};
+function setBackgroundColor(colorStr) {
+  let c;
+  try { c = new THREE.Color(colorStr); } catch (e) { return; }
+  scene.background = c;
+  const hex = '#' + c.getHexString();
+  const sel = document.getElementById('sel-bg');
+  if (sel) sel.value = (hex in BG_PRESETS) ? hex : '';
+  const colorInput = document.getElementById('bg-color');
+  if (colorInput) colorInput.value = hex;
+}
+const _selBgEl = document.getElementById('sel-bg');
+const _bgColorEl = document.getElementById('bg-color');
+if (_selBgEl) _selBgEl.addEventListener('change', () => {
+  const v = _selBgEl.value;
+  _selBgEl.value = ''; // 立即复位：再次选择同一预设也能触发 change
+  if (!v) return;
+  setBackgroundColor(v);
+  scheduleAutosave();
+  flashHint('🎨 背景已切换为 ' + (BG_PRESETS[v] || v));
+});
+if (_bgColorEl) _bgColorEl.addEventListener('input', () => {
+  // 拖色板时连续触发，静默生效，不打扰提示
+  setBackgroundColor(_bgColorEl.value);
+  scheduleAutosave();
+});
 const _expResEl = document.getElementById('exp-res');
 const _expWEl = document.getElementById('exp-w');
 const _expHEl = document.getElementById('exp-h');
@@ -2202,6 +2234,7 @@ function serializeProject() {
     lookAtTarget: state.lookAtTarget,
     gridVisible: grid.visible,
     frameVisible: !safeFrame.classList.contains('hidden'),
+    bgColor: '#' + scene.background.getHexString(),
     keys: state.keys,
     audio: (audioState.peaks && audioState.peaks.length) ? {
       name: audioState.name,
@@ -2228,6 +2261,7 @@ function sanitizeProject(data) {
     lookAtTarget: data.lookAtTarget !== false,
     gridVisible: data.gridVisible !== false,
     frameVisible: data.frameVisible !== false,
+    bgColor: /^#[0-9a-f]{6}$/i.test(data.bgColor) ? data.bgColor.toLowerCase() : '#0b1526',
     keys: {}, audio: null,
   };
   p.time = Math.min(p.duration, Math.max(0, +data.time || 0));
@@ -2293,6 +2327,7 @@ function applyProjectData(data) {
   document.getElementById('btn-grid').classList.toggle('on', p.gridVisible);
   safeFrame.classList.toggle('hidden', !p.frameVisible);
   document.getElementById('btn-frame').classList.toggle('on', p.frameVisible);
+  setBackgroundColor(p.bgColor);
   setView(p.view);
   return p;
 }
@@ -2340,6 +2375,7 @@ function newProject() {
   if (lookAt) lookAt.checked = true;
   grid.visible = true; document.getElementById('btn-grid').classList.add('on');
   safeFrame.classList.remove('hidden'); document.getElementById('btn-frame').classList.add('on');
+  setBackgroundColor('#0b1526');
   setView('camera');
   renderTimeline();
   applyAll(state.time);
