@@ -233,6 +233,40 @@
   #kf-editor .ebtns .del:hover{background:var(--danger); color:#fff;}
 
   /* ---------- 帮助看板 ---------- */
+  /* ---------- 配色面板 ---------- */
+  #color-overlay{
+    display:none; position:fixed; inset:0; z-index:190;
+    background:rgba(10,11,14,.72); backdrop-filter:blur(3px);
+    align-items:center; justify-content:center; padding:24px;
+  }
+  #color-overlay .color-card{
+    width:min(720px, 94vw); max-height:88vh; display:flex; flex-direction:column;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    box-shadow:0 18px 60px rgba(0,0,0,.5); overflow:hidden;
+  }
+  #color-overlay .color-head{
+    display:flex; align-items:center; justify-content:space-between; flex:0 0 auto;
+    padding:14px 18px; border-bottom:1px solid var(--line);
+  }
+  #color-overlay .color-head h3{font-size:15px; color:var(--accent2); letter-spacing:.5px;}
+  #color-overlay .color-head button{
+    height:26px; padding:0 11px; background:var(--panel2); color:var(--dim);
+    border:1px solid var(--line); border-radius:5px; cursor:pointer; font-size:12px;
+  }
+  #color-overlay .color-head button:hover{color:var(--text); border-color:var(--danger);}
+  #color-overlay .color-body{
+    overflow-y:auto; padding:16px 18px; display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:13px;
+  }
+  #color-overlay .csec{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:12px 14px;}
+  #color-overlay .csec h4{font-size:12.5px; color:var(--accent); margin-bottom:9px; letter-spacing:.4px;}
+  #color-overlay .crow{display:flex; align-items:center; gap:8px; margin:6px 0; font-size:12px; color:var(--dim);}
+  #color-overlay .crow > span{width:60px; flex:0 0 60px;}
+  #color-overlay .crow input[type=range]{flex:1; min-width:0; accent-color:var(--accent); height:16px;}
+  #color-overlay .crow input[type=color]{width:36px; height:22px; padding:1px; border:1px solid var(--line); border-radius:4px; background:var(--panel); cursor:pointer;}
+  #color-overlay .crow output{width:40px; flex:0 0 40px; text-align:right; font:11px/1.5 ui-monospace,Menlo,monospace; color:var(--text);}
+  #color-overlay .crow .cnote{font-size:10.5px; color:#5a6274; flex:1;}
+
   #help-overlay{
     display:none; position:fixed; inset:0; z-index:200;
     background:rgba(10,11,14,.72); backdrop-filter:blur(3px);
@@ -335,6 +369,7 @@
     <button id="btn-project-new" class="tbtn" title="清空当前内容，新建工程（恢复默认演示动画）">🗑 新建</button>
     <input type="file" id="file-project" accept=".json,application/json" hidden/>
     <button id="btn-export" class="tbtn primary">⬇ 导出动画</button>
+    <button id="btn-color" class="tbtn" title="配色：更改不同线条的颜色，以及液柱/截面/前端/扫描框等平面的颜色与透明度">🎨 配色</button>
     <button id="btn-help" class="tbtn" title="打开帮助看板：全部功能与快捷键总览（Esc 关闭）">❓ 帮助</button>
     <div class="spacer"></div>
     <div class="hint">💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · 双击轨道空白处添加关键帧 · ❓ 帮助看板看全部功能</div>
@@ -458,6 +493,34 @@
   </div>
 </div>
 
+<!-- 配色面板：线条颜色 + 平面颜色/透明度 -->
+<div id="color-overlay">
+  <div class="color-card">
+    <div class="color-head">
+      <h3>🎨 配色调整</h3>
+      <button id="color-close">✕ 关闭（Esc）</button>
+    </div>
+    <div class="color-body">
+      <div class="csec">
+        <h4>线条</h4>
+        <div class="crow"><span>流线笼</span><input type="color" data-g="lines" data-s="cage" data-k="color" value="#155e75"/><input type="range" data-g="lines" data-s="cage" data-k="opacity" min="0" max="1" step="0.01" value="0.45"/><output>0.45</output></div>
+        <div class="crow"><span>截面线</span><input type="color" data-g="lines" data-s="section" data-k="color" value="#ecfeff"/><input type="range" data-g="lines" data-s="section" data-k="opacity" min="0" max="1" step="0.01" value="1"/><output>1.00</output></div>
+        <div class="crow"><span>前端线</span><input type="color" data-g="lines" data-s="front" data-k="color" value="#fff3d0"/><input type="range" data-g="lines" data-s="front" data-k="opacity" min="0" max="1" step="0.01" value="1"/><output>1.00</output></div>
+        <div class="crow"><span>参考网格</span><input type="color" data-g="lines" data-s="grid" data-k="color" value="#1d2f52"/><input type="range" data-g="lines" data-s="grid" data-k="opacity" min="0" max="1" step="0.01" value="0.8"/><output>0.80</output></div>
+      </div>
+      <div class="csec">
+        <h4>平面</h4>
+        <div class="crow"><span>液柱表面</span><input type="color" data-g="planes" data-s="jet" data-k="color" value="#6ec6e8"/><input type="range" data-g="planes" data-s="jet" data-k="opacity" min="0" max="1" step="0.01" value="0.92"/><output>0.92</output></div>
+        <div class="crow"><span>截面填充</span><input type="color" data-g="planes" data-s="sectionFill" data-k="color" value="#4df3ff"/><input type="range" data-g="planes" data-s="sectionFill" data-k="opacity" min="0" max="1" step="0.01" value="1"/><output>1.00</output></div>
+        <div class="crow"><span>截面光晕</span><input type="color" data-g="planes" data-s="sectionHalo" data-k="color" value="#22d3ee"/><input type="range" data-g="planes" data-s="sectionHalo" data-k="opacity" min="0" max="1" step="0.01" value="0.38"/><output>0.38</output></div>
+        <div class="crow"><span>前端填充</span><input type="color" data-g="planes" data-s="frontFill" data-k="color" value="#ffb020"/><input type="range" data-g="planes" data-s="frontFill" data-k="opacity" min="0" max="1" step="0.01" value="0.95"/><output>0.95</output></div>
+        <div class="crow"><span>扫描框</span><input type="color" data-g="planes" data-s="scan" data-k="color" value="#f1f5f9"/><input type="range" data-g="planes" data-s="scan" data-k="opacity" min="0" max="1" step="0.01" value="0.9"/><output>0.90</output></div>
+        <div class="crow"><span class="cnote">液柱透明度作用于玻璃模式；实心/线框模式为不透明。热力图模式颜色不可改</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 帮助看板：全部功能与快捷键总览 -->
 <div id="help-overlay">
   <div class="help-card">
@@ -492,6 +555,7 @@
         <li><b>📐 网格</b>：全局坐标轴参考网格显示开关</li>
         <li><b>🔲 画幅框</b>：显示最终导出视频的画面范围（虚线安全框）</li>
         <li><b>🎨 背景色</b>：<em>新增</em>——顶栏「背景」下拉一键切换 深空蓝 / 纯黑 / 纯白 / 纯绿（抠像）等纯色背景，或右侧色板自定义任意颜色；背景实时生效并随导出视频一并输出（纯色抠像建议关闭 📐 网格）</li>
+        <li><b>🎨 配色</b>：<em>新增</em>——顶栏「配色」打开面板：可单独更改 流线笼/截面线/前端线/参考网格 的颜色与透明度，以及 液柱表面/截面填充/前端填充/扫描框 等平面的颜色与透明度；随工程自动保存</li>
         <li><b>面板高度</b>：拖动时间线面板上边缘调整布局</li>
       </ul></div>
       <div class="hsec"><h4>🎙 音频与节奏</h4><ul>
