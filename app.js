@@ -322,6 +322,27 @@ rim.position.set(-70, -40, -60);
 scene.add(rim);
 scene.add(new THREE.AmbientLight(0x8899bb, 0.5));
 
+// ---------------------------------------------------------------------------
+// 配色：不同线条的颜色 + 平面（液柱/截面/前端/扫描框）的颜色与透明度
+// 基准值随工程保存；渲染时叠加模式/扫描调暗系数（applyDim）
+// ---------------------------------------------------------------------------
+const COLOR_DEFAULTS = {
+  lines: {
+    cage:    { color: '#155e75', opacity: 0.45 },
+    section: { color: '#ecfeff', opacity: 1 },
+    front:   { color: '#fff3d0', opacity: 1 },
+    grid:    { color: '#1d2f52', opacity: 0.8 },
+  },
+  planes: {
+    jet:    { color: '#6ec6e8', opacity: 0.92 }, // 液柱表面（玻璃模式基准透明度；实心/线框模式保持 1）
+    sectionFill: { color: '#4df3ff', opacity: 1 },
+    sectionHalo: { color: '#22d3ee', opacity: 0.38 },
+    frontFill:   { color: '#ffb020', opacity: 0.95 },
+    scan:    { color: '#f1f5f9', opacity: 0.9 },
+  },
+};
+const colors = JSON.parse(JSON.stringify(COLOR_DEFAULTS));
+
 // 参考地面网格
 const grid = new THREE.GridHelper(300, 30, 0x1d2f52, 0x14233f);
 scene.add(grid);
@@ -342,9 +363,11 @@ const jet = (() => {
 
   // 扫描平面组（白框 + 半透明面 + 高亮截面）
   const scanGroup = new THREE.Group();
+  let scanBoxMat = null, scanPlaneMat = null;
   {
     const t = 1.1;
-    const mat = new THREE.MeshBasicMaterial({ color: 0xf1f5f9 });
+    scanBoxMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colors.planes.scan.color).getHex(), transparent: true, opacity: colors.planes.scan.opacity, toneMapped: false });
+    const mat = scanBoxMat;
     const mk = (w, h, x, z) => {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, t, h), mat);
       m.position.set(x, 0, z);
@@ -353,9 +376,10 @@ const jet = (() => {
     const S = FRAME_SIZE;
     mk(S, t, 0, -S / 2); mk(S, t, 0, S / 2);
     mk(t, S, -S / 2, 0); mk(t, S, S / 2, 0);
+    scanPlaneMat = new THREE.MeshBasicMaterial({ color: 0x9cc8e8, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false, toneMapped: false });
     const plane = new THREE.Mesh(
       new THREE.PlaneGeometry(S - t, S - t),
-      new THREE.MeshBasicMaterial({ color: 0x9cc8e8, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false, toneMapped: false }),
+      scanPlaneMat,
     );
     plane.rotation.x = -Math.PI / 2;
     plane.renderOrder = 18;
@@ -445,7 +469,7 @@ const jet = (() => {
 
     // 热力图顶点色：按带符号径向变形着色
     const vertCount = positions.length / 3;
-    const colors = new Float32Array(vertCount * 3);
+    const heatColors = new Float32Array(vertCount * 3);
     const nz = 300, nt = 72;
     const pale = [0.87, 0.95, 0.99], warm = [0.95, 0.42, 0.09], cool = [0.23, 0.45, 0.95];
     let ci = 0;
@@ -456,18 +480,18 @@ const jet = (() => {
         const t = Math.max(-1, Math.min(1, deformationAt(d, z, theta) / 0.2));
         const tgt = t >= 0 ? warm : cool;
         const w = Math.abs(t);
-        colors[ci++] = pale[0] + (tgt[0] - pale[0]) * w;
-        colors[ci++] = pale[1] + (tgt[1] - pale[1]) * w;
-        colors[ci++] = pale[2] + (tgt[2] - pale[2]) * w;
+        heatColors[ci++] = pale[0] + (tgt[0] - pale[0]) * w;
+        heatColors[ci++] = pale[1] + (tgt[1] - pale[1]) * w;
+        heatColors[ci++] = pale[2] + (tgt[2] - pale[2]) * w;
       }
     }
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(heatColors, 3));
     geo.computeVertexNormals();
 
     if (!jetMesh) {
       const mat = new THREE.MeshPhysicalMaterial({
-        color: 0x9fd8f0, transmission: 0.85, thickness: 3, roughness: 0.08, ior: 1.33,
-        transparent: true, opacity: 0.92, side: THREE.DoubleSide, clearcoat: 0.6, clearcoatRoughness: 0.2,
+        color: new THREE.Color(colors.planes.jet.color).getHex(), transmission: 0.85, thickness: 3, roughness: 0.08, ior: 1.33,
+        transparent: true, opacity: colors.planes.jet.opacity, side: THREE.DoubleSide, clearcoat: 0.6, clearcoatRoughness: 0.2,
       });
       mat.clippingPlanes = [clipPlane];
       jetMat = mat;
@@ -483,7 +507,7 @@ const jet = (() => {
       overlay.renderOrder = 2;
       scene.add(overlay);
 
-      const cm = new THREE.LineBasicMaterial({ color: 0x155e75, transparent: true, opacity: 0.45 });
+      const cm = new THREE.LineBasicMaterial({ color: new THREE.Color(colors.lines.cage.color).getHex(), transparent: true, opacity: colors.lines.cage.opacity });
       cm.clippingPlanes = [clipPlane];
       cageMat = cm;
       cage = new THREE.LineSegments(new THREE.BufferGeometry(), cm);
@@ -527,7 +551,7 @@ const jet = (() => {
       jetMesh.material = jetMat;
     } else {
       if (m === 1 && !solidMat) {
-        solidMat = new THREE.MeshStandardMaterial({ color: 0x6ec6e8, roughness: 0.3, metalness: 0.05, side: THREE.DoubleSide });
+        solidMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(colors.planes.jet.color).getHex(), roughness: 0.3, metalness: 0.05, side: THREE.DoubleSide });
         solidMat.clippingPlanes = [clipPlane];
       }
       if (m === 2 && !heatMat) {
@@ -535,13 +559,13 @@ const jet = (() => {
         heatMat.clippingPlanes = [clipPlane];
       }
       if (m === 3 && !wireMat) {
-        wireMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
+        wireMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colors.planes.jet.color).getHex(), wireframe: true });
         wireMat.clippingPlanes = [clipPlane];
       }
       jetMesh.material = m === 1 ? solidMat : m === 2 ? heatMat : wireMat;
     }
     if (cage) cage.visible = m !== 3;
-    if (cageMat) cageMat.opacity = m === 0 ? 0.45 : 0.75;
+    if (cageMat) cageMat.opacity = colors.lines.cage.opacity * (m === 0 ? 1 : 1.667);
     if (overlay) overlay.visible = stripesOn && m !== 3;
     applyDim();
   }
@@ -561,7 +585,7 @@ const jet = (() => {
   function applyDim() {
     if (jetMat) {
       jetMat.transmission = dim ? 0 : 0.85;
-      jetMat.opacity = dim ? 0.28 : 0.92;
+      jetMat.opacity = colors.planes.jet.opacity * (dim ? 0.304 : 1);
       jetMat.depthWrite = !dim;
       jetMat.needsUpdate = true;
     }
@@ -573,7 +597,62 @@ const jet = (() => {
       m.depthWrite = !dim;
       m.needsUpdate = true;
     }
-    if (cageMat) cageMat.opacity = dim ? 0.15 : (mode === 0 ? 0.45 : 0.75);
+    if (cageMat) cageMat.opacity = colors.lines.cage.opacity * (dim ? 0.333 : (mode === 0 ? 1 : 1.667));
+  }
+
+  // 应用配色：把 colors 状态写入所有 jet 相关材质（颜色/透明度，叠加模式与调暗系数）
+  function applyJetColors() {
+    const jc = colors.planes.jet, lc = colors.lines.cage;
+    if (jetMat) {
+      jetMat.color.set(jc.color);
+      jetMat.opacity = jc.opacity * (dim ? 0.304 : 1);
+      jetMat.needsUpdate = true;
+    }
+    for (const m of [solidMat, wireMat]) {
+      if (!m) continue;
+      m.color.set(jc.color);
+      m.opacity = dim ? 0.3 : 1;
+      m.needsUpdate = true;
+    }
+    if (cageMat) {
+      cageMat.color.set(lc.color);
+      cageMat.opacity = lc.opacity * (dim ? 0.333 : (mode === 0 ? 1 : 1.667));
+      cageMat.needsUpdate = true;
+    }
+    if (sectionMesh) {
+      sectionMesh.material.color.set(colors.planes.sectionFill.color);
+      sectionMesh.material.opacity = colors.planes.sectionFill.opacity;
+      sectionMesh.material.needsUpdate = true;
+    }
+    if (sectionHalo) {
+      sectionHalo.material.color.set(colors.planes.sectionHalo.color);
+      sectionHalo.material.opacity = colors.planes.sectionHalo.opacity;
+      sectionHalo.material.needsUpdate = true;
+    }
+    if (sectionLine) {
+      sectionLine.material.color.set(colors.lines.section.color);
+      sectionLine.material.opacity = colors.lines.section.opacity;
+      sectionLine.material.needsUpdate = true;
+    }
+    if (frontFill) {
+      frontFill.material.color.set(colors.planes.frontFill.color);
+      frontFill.material.opacity = colors.planes.frontFill.opacity;
+      frontFill.material.needsUpdate = true;
+    }
+    if (frontLine) {
+      frontLine.material.color.set(colors.lines.front.color);
+      frontLine.material.opacity = colors.lines.front.opacity;
+      frontLine.material.needsUpdate = true;
+    }
+    if (scanBoxMat) {
+      scanBoxMat.color.set(colors.planes.scan.color);
+      scanBoxMat.opacity = colors.planes.scan.opacity;
+      scanBoxMat.needsUpdate = true;
+    }
+    if (scanPlaneMat) {
+      scanPlaneMat.color.set(colors.planes.scan.color);
+      scanPlaneMat.needsUpdate = true;
+    }
   }
 
   function shapeFromSection(section) {
@@ -591,7 +670,7 @@ const jet = (() => {
     const fillGeo = new THREE.ShapeGeometry(shapeFromSection(section));
     fillGeo.rotateX(-Math.PI / 2);
     sectionMesh = new THREE.Mesh(fillGeo, new THREE.MeshBasicMaterial({
-      color: 0x4df3ff, transparent: true, opacity: 1.0, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
+      color: new THREE.Color(colors.planes.sectionFill.color).getHex(), transparent: true, opacity: colors.planes.sectionFill.opacity, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
     }));
     sectionMesh.position.y = 0.06;
     sectionMesh.renderOrder = 20;
@@ -607,7 +686,7 @@ const jet = (() => {
     const haloGeo = new THREE.ShapeGeometry(haloShape);
     haloGeo.rotateX(-Math.PI / 2);
     sectionHalo = new THREE.Mesh(haloGeo, new THREE.MeshBasicMaterial({
-      color: 0x22d3ee, transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
+      color: new THREE.Color(colors.planes.sectionHalo.color).getHex(), transparent: true, opacity: colors.planes.sectionHalo.opacity, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
     }));
     sectionHalo.position.y = 0.03;
     sectionHalo.renderOrder = 19;
@@ -616,7 +695,7 @@ const jet = (() => {
     if (sectionLine) { sectionLine.geometry.dispose(); scanGroup.remove(sectionLine); }
     const linePts = section.points.map(([x, z]) => new THREE.Vector3(x, 0.14, z));
     sectionLine = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(linePts),
-      new THREE.LineBasicMaterial({ color: 0xecfeff, toneMapped: false }));
+      new THREE.LineBasicMaterial({ color: new THREE.Color(colors.lines.section.color).getHex(), transparent: true, opacity: colors.lines.section.opacity, toneMapped: false }));
     sectionLine.renderOrder = 21;
     scanGroup.add(sectionLine);
 
@@ -634,7 +713,7 @@ const jet = (() => {
     fillGeo.rotateX(-Math.PI / 2);
     if (!frontFill) {
       frontFill = new THREE.Mesh(fillGeo, new THREE.MeshBasicMaterial({
-        color: 0xffb020, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
+        color: new THREE.Color(colors.planes.frontFill.color).getHex(), transparent: true, opacity: colors.planes.frontFill.opacity, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
       }));
       frontFill.renderOrder = 15;
       scene.add(frontFill);
@@ -644,7 +723,7 @@ const jet = (() => {
     const pts = section.points.map(([x, z]) => new THREE.Vector3(x, 0.05, z));
     const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
     if (!frontLine) {
-      frontLine = new THREE.LineLoop(lineGeo, new THREE.LineBasicMaterial({ color: 0xfff3d0, toneMapped: false }));
+      frontLine = new THREE.LineLoop(lineGeo, new THREE.LineBasicMaterial({ color: new THREE.Color(colors.lines.front.color).getHex(), transparent: true, opacity: colors.lines.front.opacity, toneMapped: false }));
       frontLine.renderOrder = 16;
       scene.add(frontLine);
     } else { frontLine.geometry.dispose(); frontLine.geometry = lineGeo; }
@@ -665,6 +744,7 @@ const jet = (() => {
     updateScan,
     updateFront,
     showFront,
+    applyJetColors,
     get stripeTex() { return stripeTex; },
     get plateMat() { return plateMat; },
   };
@@ -672,6 +752,56 @@ const jet = (() => {
 
 // 初始构建（默认参数）
   jet.rebuild(deriveJet(DEFAULT_PARAMS), DEFAULT_PARAMS);
+
+// ---------------------------------------------------------------------------
+// 配色应用：把 colors 状态写入所有线条/平面材质（颜色 + 透明度）
+// ---------------------------------------------------------------------------
+function applyColors() {
+  jet.applyJetColors();
+  // 网格（GridHelper 材质为数组，统一应用配色）
+  const gms = Array.isArray(grid.material) ? grid.material : [grid.material];
+  for (const m of gms) {
+    m.color.set(colors.lines.grid.color);
+    m.transparent = true;
+    m.opacity = colors.lines.grid.opacity;
+    m.needsUpdate = true;
+  }
+}
+
+// --- 配色面板 ---
+const colorOverlay = document.getElementById('color-overlay');
+function toggleColors(show) {
+  colorOverlay.style.display = show ? 'flex' : 'none';
+  if (show) syncColorPanel();
+}
+function syncColorPanel() {
+  colorOverlay.querySelectorAll('[data-g]').forEach(el => {
+    const g = colors[el.dataset.g];
+    if (!g || !g[el.dataset.s] || !(el.dataset.k in g[el.dataset.s])) return;
+    const v = g[el.dataset.s][el.dataset.k];
+    if (el.type === 'color') el.value = v;
+    else {
+      el.value = v;
+      const out = el.parentElement.querySelector('output');
+      if (out) out.textContent = (+v).toFixed(2);
+    }
+  });
+}
+document.getElementById('btn-color').addEventListener('click', () => toggleColors(colorOverlay.style.display !== 'flex'));
+document.getElementById('color-close').addEventListener('click', () => toggleColors(false));
+colorOverlay.addEventListener('click', e => { if (e.target === colorOverlay) toggleColors(false); });
+colorOverlay.querySelectorAll('[data-g]').forEach(el => {
+  const evt = el.type === 'color' ? 'change' : 'input';
+  el.addEventListener(evt, () => {
+    const g = colors[el.dataset.g];
+    if (!g || !g[el.dataset.s]) return;
+    g[el.dataset.s][el.dataset.k] = el.type === 'color' ? el.value : parseFloat(el.value);
+    const out = el.parentElement.querySelector('output');
+    if (out && el.type === 'range') out.textContent = parseFloat(el.value).toFixed(2);
+    applyColors();
+    scheduleAutosave();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // 4. 关键帧求值（Catmull-Rom 平滑 / 线性 / 阶梯）
@@ -1640,6 +1770,7 @@ window.addEventListener('keydown', e => {
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.code === 'KeyZ') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if (mod && e.code === 'KeyY') { e.preventDefault(); redo(); return; }
+  if (e.key === 'Escape' && colorOverlay.style.display === 'flex') { toggleColors(false); return; } // 配色面板优先关闭
   if (e.key === 'Escape' && helpOverlay.style.display === 'flex') { toggleHelp(false); return; } // 帮助看板优先关闭（不受输入框焦点影响）
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   if (mod && e.code === 'KeyC') { e.preventDefault(); copySelection(); return; }
@@ -2238,6 +2369,7 @@ function serializeProject() {
     gridVisible: grid.visible,
     frameVisible: !safeFrame.classList.contains('hidden'),
     bgColor: '#' + scene.background.getHexString(),
+    colors: colors,
     keys: state.keys,
     audio: (audioState.peaks && audioState.peaks.length) ? {
       name: audioState.name,
@@ -2250,6 +2382,23 @@ function serializeProject() {
 function saveProjectToStorage() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeProject())); }
   catch (e) { /* 存储配额不足时静默失败，不影响工作台 */ }
+}
+
+function sanitizeColors(src) {
+  const out = JSON.parse(JSON.stringify(COLOR_DEFAULTS));
+  if (!src || typeof src !== 'object') return out;
+  for (const g of Object.keys(out)) {
+    const s = src[g];
+    if (!s || typeof s !== 'object') continue;
+    for (const item of Object.keys(out[g])) {
+      const it = s[item];
+      if (!it || typeof it !== 'object') continue;
+      if (typeof it.color === 'string' && /^#[0-9a-f]{6}$/i.test(it.color)) out[g][item].color = it.color.toLowerCase();
+      const v = parseFloat(it.opacity);
+      if (isFinite(v) && v >= 0 && v <= 1) out[g][item].opacity = v;
+    }
+  }
+  return out;
 }
 
 function sanitizeProject(data) {
@@ -2265,6 +2414,7 @@ function sanitizeProject(data) {
     gridVisible: data.gridVisible !== false,
     frameVisible: data.frameVisible !== false,
     bgColor: /^#[0-9a-f]{6}$/i.test(data.bgColor) ? data.bgColor.toLowerCase() : '#0b1526',
+    colors: sanitizeColors(data.colors),
     keys: {}, audio: null,
   };
   p.time = Math.min(p.duration, Math.max(0, +data.time || 0));
@@ -2331,6 +2481,8 @@ function applyProjectData(data) {
   safeFrame.classList.toggle('hidden', !p.frameVisible);
   document.getElementById('btn-frame').classList.toggle('on', p.frameVisible);
   setBackgroundColor(p.bgColor);
+  Object.assign(colors, sanitizeColors(p.colors));
+  applyColors();
   setView(p.view);
   return p;
 }
@@ -2379,6 +2531,8 @@ function newProject() {
   grid.visible = true; document.getElementById('btn-grid').classList.add('on');
   safeFrame.classList.remove('hidden'); document.getElementById('btn-frame').classList.add('on');
   setBackgroundColor('#0b1526');
+  Object.assign(colors, JSON.parse(JSON.stringify(COLOR_DEFAULTS)));
+  applyColors();
   setView('camera');
   renderTimeline();
   applyAll(state.time);
