@@ -470,13 +470,18 @@
     <div class="frow"><span>格式</span>
       <select id="exp-format">
         <option value="mp4" selected>MP4 视频（H.264，通用可预览）</option>
-        <option value="webm">WebM 视频（VP9）</option>
-        <option value="png">PNG 图像序列（ZIP 打包）</option>
+        <option value="mov">MOV 视频（H.264，兼容容器）</option>
+        <option value="png">PNG 图像序列（ZIP 打包，可选透明背景）</option>
       </select>
+    </div>
+    <div class="frow" id="exp-alpha-row" style="display:none"><span>透明背景</span>
+      <label style="flex:1;display:flex;align-items:center;gap:8px;color:var(--text);cursor:pointer;font-size:12.5px">
+        <input type="checkbox" id="exp-alpha"/> PNG 背景透明（alpha 通道，便于后期合成/抠像）
+      </label>
     </div>
     <div class="frow" style="color:var(--dim);font-size:11.5px;line-height:1.5">
       <span></span>
-      <span>MP4/WebM 无声导出采用 WebCodecs 精确编码，帧率严格等于所选值；混入口播时为实时录制，帧率由浏览器决定。</span>
+      <span>MP4/MOV 无声导出采用 WebCodecs 精确编码，帧率严格等于所选值；混入口播时为实时录制，帧率由浏览器决定。MOV 为 H.264 兼容容器（多数播放器/剪辑软件可打开）。</span>
     </div>
     <div class="frow" id="exp-mix-row" style="display:none"><span>混入口播</span>
       <label style="flex:1;display:flex;align-items:center;gap:8px;color:var(--text);cursor:pointer;font-size:12.5px">
@@ -571,7 +576,8 @@
         <li><em>注意</em>：音频不内嵌工程文件（仅波形数据），恢复后需重新导入音频</li>
       </ul></div>
       <div class="hsec"><h4>⬇ 导出动画</h4><ul>
-        <li><b>格式</b>：MP4（H.264 通用可预览）/ WebM（VP9）/ PNG 序列（ZIP 打包）</li>
+        <li><b>格式</b>：MP4（H.264 通用可预览）/ MOV（H.264 兼容容器）/ PNG 序列（ZIP 打包）</li>
+        <li><b>透明背景</b>：<em>新增</em>——PNG 序列可选「透明背景」，导出帧背景透明（alpha 通道），便于 AE/剪辑后期合成或抠像</li>
         <li><b>精确帧率</b>：无声导出采用 WebCodecs 精确编码，帧率严格等于所选值；混入口播时为实时录制</li>
         <li>导出范围即画幅框（🔲）所示画面</li>
       </ul></div>
