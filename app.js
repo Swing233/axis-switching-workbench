@@ -1865,15 +1865,17 @@ const MP4_OK = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSuppo
 const expFormat = document.getElementById('exp-format');
 expFormat.addEventListener('change', () => {
   const f = expFormat.value;
-  document.getElementById('exp-mix-row').style.display = ((f === 'mp4' || f === 'webm') && audioState.ready) ? 'flex' : 'none';
+  document.getElementById('exp-mix-row').style.display = ((f === 'mp4' || f === 'mov') && audioState.ready) ? 'flex' : 'none';
+  document.getElementById('exp-alpha-row').style.display = f === 'png' ? 'flex' : 'none';
 });
 document.getElementById('btn-export').addEventListener('click', () => {
   const mixOk = audioState.ready;
   // 浏览器不支持 MP4 录制时禁用该选项（如 Firefox）
   const mp4Opt = expFormat.querySelector('option[value="mp4"]');
   mp4Opt.disabled = !MP4_OK;
-  if (!MP4_OK && expFormat.value === 'mp4') expFormat.value = 'webm';
+  if (!MP4_OK && expFormat.value === 'mp4') expFormat.value = 'mov';
   document.getElementById('exp-mix-row').style.display = mixOk ? 'flex' : 'none';
+  document.getElementById('exp-alpha-row').style.display = expFormat.value === 'png' ? 'flex' : 'none';
   document.getElementById('exp-mix').checked = mixOk;
   document.getElementById('exp-range').value = mixOk
     ? `口播 ${audioState.duration.toFixed(1)}s · 动画 ${state.duration}s — 混音导出为实时录制，时长以口播为准`
@@ -1963,7 +1965,8 @@ async function pickVideoCodec(wantWebm, w, h, fps) {
 }
 
 // 逐帧精确导出。返回 'ok' | 'cancelled' | 'unsupported'（unsupported → 调用方回退 MediaRecorder）
-async function frameAccurateExport(w, h, fps, wantWebm) {
+// isMov：输出 .mov 扩展名 + video/quicktime 类型（容器数据为 H.264 ISO BMFF，多数播放器/剪辑可打开）
+async function frameAccurateExport(w, h, fps, wantWebm, isMov = false) {
   if (!canUseWebCodecs()) return 'unsupported';
   const bar = document.querySelector('#export-progress i');
   const status = document.getElementById('export-status');
@@ -1984,7 +1987,6 @@ async function frameAccurateExport(w, h, fps, wantWebm) {
     const lib = await loadMuxerLib(wantWebm);
     const codec = await pickVideoCodec(wantWebm, w, h, fps);
     if (!codec) return 'unsupported';
-    const ext = wantWebm ? 'webm' : 'mp4';
     const frames = Math.max(1, Math.round(state.duration * fps));
     const usPerFrame = Math.round(1e6 / fps);
 
@@ -2021,8 +2023,8 @@ async function frameAccurateExport(w, h, fps, wantWebm) {
     await enc.flush();
     enc.close(); enc = null;
     muxer.finalize();
-    const blob = new Blob([muxer.target.buffer], { type: wantWebm ? 'video/webm' : 'video/mp4' });
-    downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps.${ext}`);
+    const blob = new Blob([muxer.target.buffer], { type: isMov ? 'video/quicktime' : 'video/mp4' });
+    downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps.${isMov ? 'mov' : 'mp4'}`);
     status.textContent = `✅ 已导出 ${ext.toUpperCase()} 视频（${w}×${h} @ ${fps}fps 精确编码，${blob.size / 1048576 > 1 ? (blob.size / 1048576).toFixed(1) + ' MB' : Math.round(blob.size / 1024) + ' KB'}）— 可直接预览`;
     return 'ok';
   } catch (err) {
@@ -2041,7 +2043,7 @@ async function frameAccurateExport(w, h, fps, wantWebm) {
 // 用浏览器原生 MediaRecorder 实时录制（MP4/WebM）。以真实流逝时间驱动动画，
 // 保证视频总时长 = 动画时长；canvas.captureStream 按帧率节流捕获，不掉帧丢内容。
 // 注意：MediaRecorder 的输出帧率由浏览器编码器决定，无法精确控制（回退路径）。
-async function recordingExport(w, h, fps, wantWebm) {
+async function recordingExport(w, h, fps, wantWebm, isMov = false) {
   const bar = document.querySelector('#export-progress i');
   const status = document.getElementById('export-status');
   const prog = document.getElementById('export-progress');
@@ -2060,7 +2062,7 @@ async function recordingExport(w, h, fps, wantWebm) {
     const mime = pickVideoMime(false, wantWebm);
     if (!mime) throw new Error('当前浏览器不支持视频录制');
     const isMp4 = mime.startsWith('video/mp4');
-    const ext = isMp4 ? 'mp4' : 'webm';
+    const ext = isMp4 ? (isMov ? 'mov' : 'mp4') : 'webm';
 
     const stream = canvas.captureStream(fps);
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 16e6 });
@@ -2104,7 +2106,7 @@ async function recordingExport(w, h, fps, wantWebm) {
   }
 }
 
-async function exportLiveVoice(w, h, fps, wantWebm) {
+async function exportLiveVoice(w, h, fps, wantWebm, isMov = false) {
   const bar = document.querySelector('#export-progress i');
   const status = document.getElementById('export-status');
   const prog = document.getElementById('export-progress');
@@ -2127,7 +2129,7 @@ async function exportLiveVoice(w, h, fps, wantWebm) {
     const mime = pickVideoMime(true, wantWebm);
     if (!mime) throw new Error('当前浏览器不支持视频录制');
     const isMp4 = mime.startsWith('video/mp4');
-    const ext = isMp4 ? 'mp4' : 'webm';
+    const ext = isMp4 ? (isMov ? 'mov' : 'mp4') : 'webm';
 
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 16e6, audioBitsPerSecond: 160e3 });
     const chunks = [];
@@ -2181,22 +2183,24 @@ document.getElementById('exp-start').addEventListener('click', async () => {
   const format = document.getElementById('exp-format').value;
   const mix = document.getElementById('exp-mix').checked;
 
-  // MP4 / WebM：优先 WebCodecs 逐帧精确编码（帧率严格 = 所选值，60fps 就是 60fps）；
+  // MP4 / MOV：优先 WebCodecs 逐帧精确编码（帧率严格 = 所选值，60fps 就是 60fps）；
   // 浏览器不支持 WebCodecs 或 muxer 库加载失败时，回退 MediaRecorder 实时录制。
-  if (format === 'mp4' || format === 'webm') {
-    const wantWebm = format === 'webm';
+  if (format === 'mp4' || format === 'mov') {
+    const wantWebm = false;
+    const isMov = format === 'mov';
     if (mix && audioState.ready) {
-      await exportLiveVoice(w, h, fps, wantWebm); // 混音：实时录制（音画同步优先）
+      await exportLiveVoice(w, h, fps, wantWebm, isMov); // 混音：实时录制（音画同步优先）
     } else {
-      const r = await frameAccurateExport(w, h, fps, wantWebm);
+      const r = await frameAccurateExport(w, h, fps, wantWebm, isMov);
       if (r === 'ok' || r === 'cancelled') return;
-      await recordingExport(w, h, fps, wantWebm);
+      await recordingExport(w, h, fps, wantWebm, isMov);
     }
     return;
   }
 
-  // PNG 序列：逐帧精确渲染打包 ZIP
+  // PNG 序列：逐帧精确渲染打包 ZIP；可选透明背景（alpha 通道，便于后期合成）
   const frames = Math.max(1, Math.round(state.duration * fps));
+  const transparent = document.getElementById('exp-alpha').checked;
 
   const bar = document.querySelector('#export-progress i');
   const status = document.getElementById('export-status');
@@ -2208,6 +2212,10 @@ document.getElementById('exp-start').addEventListener('click', async () => {
   const canvas = renderer.domElement;
   const oldW = canvas.width, oldH = canvas.height;
   const oldAspect = camera.aspect;
+  // 透明背景：导出期间移除场景背景色 + 清空 alpha，PNG 带透明通道；结束后恢复
+  const savedBg = scene.background;
+  const savedClearAlpha = renderer.getClearAlpha();
+  if (transparent) { scene.background = null; renderer.setClearAlpha(0); }
 
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
@@ -2233,8 +2241,8 @@ document.getElementById('exp-start').addEventListener('click', async () => {
       const blob = await zip.generateAsync({ type: 'blob' }, m => {
         bar.style.width = (m.percent).toFixed(1) + '%';
       });
-      downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps_序列帧.zip`);
-      status.textContent = `✅ 已导出 ${frames} 帧 PNG 序列（${w}×${h} @ ${fps}fps）`;
+      downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps_序列帧${transparent ? '_透明' : ''}.zip`);
+      status.textContent = `✅ 已导出 ${frames} 帧 PNG 序列（${w}×${h} @ ${fps}fps${transparent ? '，背景透明' : ''}）`;
     } else {
       status.textContent = '已取消导出。';
     }
@@ -2244,6 +2252,7 @@ document.getElementById('exp-start').addEventListener('click', async () => {
     renderer.setSize(oldW, oldH, false);
     camera.aspect = oldAspect;
     camera.updateProjectionMatrix();
+    if (transparent) { scene.background = savedBg; renderer.setClearAlpha(savedClearAlpha); }
     exporting = false;
     applyAll(state.time);
   }
