@@ -342,6 +342,7 @@ const COLOR_DEFAULTS = {
   },
 };
 const colors = JSON.parse(JSON.stringify(COLOR_DEFAULTS));
+let plateVisible = true; // 孔板（水流开始平台）显示开关，随工程持久化
 
 // 参考地面网格
 const grid = new THREE.GridHelper(300, 30, 0x1d2f52, 0x14233f);
@@ -453,6 +454,7 @@ const jet = (() => {
     plate.rotation.x = Math.PI / 2;
     plate.position.y = 0.3;
     plateGroup = new THREE.Group();
+    plateGroup.visible = plateVisible; // 孔板显示开关（模块级，随工程持久化）
     plateGroup.add(plate);
     scene.add(plateGroup);
   }
@@ -747,6 +749,7 @@ const jet = (() => {
     applyJetColors,
     get stripeTex() { return stripeTex; },
     get plateMat() { return plateMat; },
+    get plateGroup() { return plateGroup; },
   };
 })();
 
@@ -2388,6 +2391,13 @@ document.getElementById('btn-frame').addEventListener('click', () => {
   document.getElementById('btn-frame').classList.toggle('on', !hidden);
   scheduleAutosave();
 });
+// 孔板（水流开始平台）显示开关
+document.getElementById('btn-plate').addEventListener('click', () => {
+  plateVisible = !plateVisible;
+  if (jet.plateGroup) jet.plateGroup.visible = plateVisible;
+  document.getElementById('btn-plate').classList.toggle('on', plateVisible);
+  scheduleAutosave();
+});
 // 背景色：预设下拉（深空蓝/纯黑/纯白/纯绿抠像）+ 自定义取色器，scene.background 实时生效并写入工程/导出
 const BG_PRESETS = {
   '#0b1526': '深空蓝（默认）',
@@ -2455,6 +2465,7 @@ function serializeProject() {
     lookAtTarget: state.lookAtTarget,
     gridVisible: grid.visible,
     frameVisible: !safeFrame.classList.contains('hidden'),
+    plateVisible,
     bgColor: '#' + scene.background.getHexString(),
     colors: colors,
     keys: state.keys,
@@ -2500,6 +2511,7 @@ function sanitizeProject(data) {
     lookAtTarget: data.lookAtTarget !== false,
     gridVisible: data.gridVisible !== false,
     frameVisible: data.frameVisible !== false,
+    plateVisible: data.plateVisible !== false,
     bgColor: /^#[0-9a-f]{6}$/i.test(data.bgColor) ? data.bgColor.toLowerCase() : '#0b1526',
     colors: sanitizeColors(data.colors),
     keys: {}, audio: null,
@@ -2567,6 +2579,9 @@ function applyProjectData(data) {
   document.getElementById('btn-grid').classList.toggle('on', p.gridVisible);
   safeFrame.classList.toggle('hidden', !p.frameVisible);
   document.getElementById('btn-frame').classList.toggle('on', p.frameVisible);
+  plateVisible = p.plateVisible;
+  if (jet.plateGroup) jet.plateGroup.visible = plateVisible;
+  document.getElementById('btn-plate').classList.toggle('on', plateVisible);
   setBackgroundColor(p.bgColor);
   Object.assign(colors, sanitizeColors(p.colors));
   applyColors();
@@ -2617,6 +2632,8 @@ function newProject() {
   if (lookAt) lookAt.checked = true;
   grid.visible = true; document.getElementById('btn-grid').classList.add('on');
   safeFrame.classList.remove('hidden'); document.getElementById('btn-frame').classList.add('on');
+  plateVisible = true; document.getElementById('btn-plate').classList.add('on');
+  if (jet.plateGroup) jet.plateGroup.visible = true;
   setBackgroundColor('#0b1526');
   Object.assign(colors, JSON.parse(JSON.stringify(COLOR_DEFAULTS)));
   applyColors();
