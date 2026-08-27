@@ -467,6 +467,9 @@
         <option value="60">60 fps（流畅）</option>
       </select>
     </div>
+    <div class="frow"><span>文件名</span>
+      <input id="exp-name" type="text" style="flex:1" placeholder="留空自动命名（口播音频名 / 模拟器名+日期）"/>
+    </div>
     <div class="frow"><span>格式</span>
       <select id="exp-format">
         <option value="mp4" selected>MP4 视频（H.264，通用可预览）</option>
@@ -577,6 +580,7 @@
       </ul></div>
       <div class="hsec"><h4>⬇ 导出动画</h4><ul>
         <li><b>格式</b>：MP4（H.264 通用可预览）/ MOV（H.264 兼容容器）/ PNG 序列（ZIP 打包）</li>
+        <li><b>文件名</b>：<em>新增</em>——可自定义导出文件名；留空自动命名（有口播用音频名，否则用 模拟器名+日期）</li>
         <li><b>透明背景</b>：<em>新增</em>——PNG 序列可选「透明背景」，导出帧背景透明（alpha 通道），便于 AE/剪辑后期合成或抠像</li>
         <li><b>精确帧率</b>：无声导出采用 WebCodecs 精确编码，帧率严格等于所选值；混入口播时为实时录制</li>
         <li>导出范围即画幅框（🔲）所示画面</li>
