@@ -1868,6 +1868,27 @@ expFormat.addEventListener('change', () => {
   document.getElementById('exp-mix-row').style.display = ((f === 'mp4' || f === 'mov') && audioState.ready) ? 'flex' : 'none';
   document.getElementById('exp-alpha-row').style.display = f === 'png' ? 'flex' : 'none';
 });
+// ---------------------------------------------------------------------------
+// 导出文件命名：自定义（exp-name 输入框）> 口播音频名 > 模拟器名 + 日期
+// ---------------------------------------------------------------------------
+const SIM_NAME = 'axis_switching'; // 模拟器名称（无口播时的默认命名基名）
+function todayStr() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function sanitizeName(s) {
+  return s.replace(/[\\/:*?"<>|]/g, '_').trim();
+}
+function defaultExportBase() {
+  if (audioState.ready && audioState.name) return sanitizeName(audioState.name.replace(/\.[^.]+$/, ''));
+  return `${SIM_NAME}_${todayStr()}`;
+}
+function exportBaseName() {
+  const v = document.getElementById('exp-name').value.trim();
+  return sanitizeName(v || defaultExportBase());
+}
+
 document.getElementById('btn-export').addEventListener('click', () => {
   const mixOk = audioState.ready;
   // 浏览器不支持 MP4 录制时禁用该选项（如 Firefox）
@@ -1877,6 +1898,9 @@ document.getElementById('btn-export').addEventListener('click', () => {
   document.getElementById('exp-mix-row').style.display = mixOk ? 'flex' : 'none';
   document.getElementById('exp-alpha-row').style.display = expFormat.value === 'png' ? 'flex' : 'none';
   document.getElementById('exp-mix').checked = mixOk;
+  // 文件名为空时自动填充默认（口播名 / 模拟器+日期）；用户自定义后保留
+  const nameInput = document.getElementById('exp-name');
+  if (!nameInput.value.trim()) nameInput.value = defaultExportBase();
   document.getElementById('exp-range').value = mixOk
     ? `口播 ${audioState.duration.toFixed(1)}s · 动画 ${state.duration}s — 混音导出为实时录制，时长以口播为准`
     : `0 – ${state.duration}s（实时录制，视频时长 = 动画时长 ${state.duration}s）`;
@@ -2024,7 +2048,7 @@ async function frameAccurateExport(w, h, fps, wantWebm, isMov = false) {
     enc.close(); enc = null;
     muxer.finalize();
     const blob = new Blob([muxer.target.buffer], { type: isMov ? 'video/quicktime' : 'video/mp4' });
-    downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps.${isMov ? 'mov' : 'mp4'}`);
+    downloadBlob(blob, `${exportBaseName()}_${w}x${h}_${fps}fps.${isMov ? 'mov' : 'mp4'}`);
     status.textContent = `✅ 已导出 ${ext.toUpperCase()} 视频（${w}×${h} @ ${fps}fps 精确编码，${blob.size / 1048576 > 1 ? (blob.size / 1048576).toFixed(1) + ' MB' : Math.round(blob.size / 1024) + ' KB'}）— 可直接预览`;
     return 'ok';
   } catch (err) {
@@ -2092,7 +2116,7 @@ async function recordingExport(w, h, fps, wantWebm, isMov = false) {
       status.textContent = '已取消导出。';
     } else {
       const blob = new Blob(chunks, { type: mime });
-      downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps.${ext}`);
+      downloadBlob(blob, `${exportBaseName()}_${w}x${h}_${fps}fps.${ext}`);
       status.textContent = `✅ 已导出 ${ext.toUpperCase()} 视频（${w}×${h} @ ${fps}fps，${blob.size / 1048576 > 1 ? (blob.size / 1048576).toFixed(1) + ' MB' : Math.round(blob.size / 1024) + ' KB'}）— 可直接预览。注意：本浏览器不支持精确帧率编码，实际帧率由浏览器决定（通常 24/30fps）`;
     }
   } catch (err) {
@@ -2157,7 +2181,7 @@ async function exportLiveVoice(w, h, fps, wantWebm, isMov = false) {
       status.textContent = '已取消导出。';
     } else {
       const blob = new Blob(chunks, { type: mime });
-      downloadBlob(blob, `axis_switching_voice_${w}x${h}_${fps}fps.${ext}`);
+      downloadBlob(blob, `${exportBaseName()}_voice_${w}x${h}_${fps}fps.${ext}`);
       status.textContent = `✅ 已导出带口播的 ${ext.toUpperCase()} 视频（${w}×${h}，${blob.size / 1048576 > 1 ? (blob.size / 1048576).toFixed(1) + ' MB' : Math.round(blob.size / 1024) + ' KB'}）— 可直接预览。注意：实时混音录制的帧率由浏览器编码器决定（可能与所选 ${fps}fps 不一致）`;
     }
   } catch (err) {
@@ -2241,7 +2265,7 @@ document.getElementById('exp-start').addEventListener('click', async () => {
       const blob = await zip.generateAsync({ type: 'blob' }, m => {
         bar.style.width = (m.percent).toFixed(1) + '%';
       });
-      downloadBlob(blob, `axis_switching_${w}x${h}_${fps}fps_序列帧${transparent ? '_透明' : ''}.zip`);
+      downloadBlob(blob, `${exportBaseName()}_${w}x${h}_${fps}fps_序列帧${transparent ? '_透明' : ''}.zip`);
       status.textContent = `✅ 已导出 ${frames} 帧 PNG 序列（${w}×${h} @ ${fps}fps${transparent ? '，背景透明' : ''}）`;
     } else {
       status.textContent = '已取消导出。';
