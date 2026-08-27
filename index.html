@@ -268,6 +268,12 @@
   #color-overlay .swatch{width:26px; height:18px; flex:0 0 26px; border-radius:3px; border:1px solid var(--line);
     background-image:conic-gradient(#4a5060 25%,#23262e 0 50%,#4a5060 0 75%,#23262e 0); background-size:7px 7px;}
   #color-overlay .swatch i{display:block; width:100%; height:100%; border-radius:3px;}
+  #color-overlay .color-preview{grid-column:1 / -1; display:flex; flex-direction:column; align-items:center; gap:6px;
+    background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:10px;}
+  #color-overlay .color-preview canvas{
+    width:100%; max-width:480px; height:auto; aspect-ratio:16/9; border-radius:6px; border:1px solid var(--line);
+    background-image:conic-gradient(#4a5060 25%,#23262e 0 50%,#4a5060 0 75%,#23262e 0); background-size:10px 10px;}
+  #color-overlay .color-preview .cp-note{font-size:11px; color:#5a6274;}
   #color-overlay .crow .cnote{font-size:10.5px; color:#5a6274; flex:1;}
 
   #help-overlay{
@@ -515,6 +521,10 @@
       </div>
     </div>
     <div class="color-body">
+      <div class="color-preview">
+        <canvas id="color-preview-canvas" width="480" height="270"></canvas>
+        <div class="cp-note">▶ 实时预览 · 当前播放头画面（配色改动即时生效）</div>
+      </div>
       <div class="csec">
         <h4>线条</h4>
         <div class="crow"><span>流线笼</span><input type="color" data-g="lines" data-s="cage" data-k="color" value="#155e75"/><input type="range" data-g="lines" data-s="cage" data-k="opacity" min="0" max="1" step="0.01" value="0.45"/><output>0.45</output><span class="swatch"><i></i></span></div>
