@@ -785,19 +785,44 @@ function syncColorPanel() {
       const out = el.parentElement.querySelector('output');
       if (out) out.textContent = (+v).toFixed(2);
     }
+    updateSwatch(el); // 实时参考色块同步
   });
+}
+// hex 转 rgba（配色实时参考色块用）
+function hexToRgba(hex, a) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function updateSwatch(el) {
+  const g = colors[el.dataset.g];
+  if (!g || !g[el.dataset.s]) return;
+  const s = g[el.dataset.s];
+  const i = el.closest('.crow') && el.closest('.crow').querySelector('.swatch i');
+  if (i) i.style.background = hexToRgba(s.color, s.opacity);
+}
+function resetColors() {
+  snapshot(); // 重置进入撤销栈（可 ⌘Z 撤回）
+  Object.assign(colors, JSON.parse(JSON.stringify(COLOR_DEFAULTS)));
+  applyColors();
+  syncColorPanel();
+  scheduleAutosave();
+  flashHint('🎨 已重置为原配色（⌘Z 可撤回）');
 }
 document.getElementById('btn-color').addEventListener('click', () => toggleColors(colorOverlay.style.display !== 'flex'));
 document.getElementById('color-close').addEventListener('click', () => toggleColors(false));
+document.getElementById('color-reset').addEventListener('click', resetColors);
 colorOverlay.addEventListener('click', e => { if (e.target === colorOverlay) toggleColors(false); });
 colorOverlay.querySelectorAll('[data-g]').forEach(el => {
   const evt = el.type === 'color' ? 'change' : 'input';
   el.addEventListener(evt, () => {
     const g = colors[el.dataset.g];
     if (!g || !g[el.dataset.s]) return;
+    snapshot(); // 每次配色修改进入撤销栈（可撤回/重做）
     g[el.dataset.s][el.dataset.k] = el.type === 'color' ? el.value : parseFloat(el.value);
     const out = el.parentElement.querySelector('output');
     if (out && el.type === 'range') out.textContent = parseFloat(el.value).toFixed(2);
+    updateSwatch(el); // 实时参考色块
     applyColors();
     scheduleAutosave();
   });
@@ -954,11 +979,12 @@ function cloneKeys() {
   for (const id in state.keys) out[id] = state.keys[id].map(k => ({ ...k }));
   return out;
 }
+function cloneColors() { return JSON.parse(JSON.stringify(colors)); }
 function snapshot() {
   const now = Date.now();
   if (snapGesture === gestureId && now - lastSnapAt < 500) return; // 同手势连续变更合并
   snapGesture = gestureId; lastSnapAt = now;
-  undoStack.push(cloneKeys());
+  undoStack.push({ keys: cloneKeys(), colors: cloneColors() }); // 配色随关键帧一起可撤回
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack.length = 0;
   updateUndoButtons();
@@ -978,16 +1004,22 @@ function afterKeysChanged() {
 }
 function undo() {
   if (!undoStack.length) { flashHint('没有可撤回的操作'); return; }
-  redoStack.push(cloneKeys());
-  state.keys = restoreKeys(undoStack.pop());
+  redoStack.push({ keys: cloneKeys(), colors: cloneColors() });
+  const snap = undoStack.pop();
+  state.keys = restoreKeys(snap.keys);
+  Object.assign(colors, snap.colors);
+  applyColors(); syncColorPanel();
   snapGesture = -1; lastSnapAt = 0;
   afterKeysChanged();
   flashHint('↩ 已撤回');
 }
 function redo() {
   if (!redoStack.length) { flashHint('没有可重做的操作'); return; }
-  undoStack.push(cloneKeys());
-  state.keys = restoreKeys(redoStack.pop());
+  undoStack.push({ keys: cloneKeys(), colors: cloneColors() });
+  const snap = redoStack.pop();
+  state.keys = restoreKeys(snap.keys);
+  Object.assign(colors, snap.colors);
+  applyColors(); syncColorPanel();
   snapGesture = -1; lastSnapAt = 0;
   afterKeysChanged();
   flashHint('↪ 已重做');
