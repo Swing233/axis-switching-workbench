@@ -770,9 +770,31 @@ function applyColors() {
 
 // --- 配色面板 ---
 const colorOverlay = document.getElementById('color-overlay');
+// 实时预览：把主渲染器 canvas 当前帧复制到面板预览（150ms 刷新，播放时画面也跟随）
+const colorPreviewCanvas = document.getElementById('color-preview-canvas');
+const colorPreviewCtx = colorPreviewCanvas.getContext('2d');
+let colorPreviewTimer = null;
+function syncColorPreview() {
+  const src = renderer.domElement;
+  if (!src) return;
+  const cw = src.width, ch = src.height;
+  if (!cw || !ch) return;
+  const pw = colorPreviewCanvas.width, ph = colorPreviewCanvas.height;
+  colorPreviewCtx.clearRect(0, 0, pw, ph);
+  const scale = Math.min(pw / cw, ph / ch);
+  const dw = cw * scale, dh = ch * scale;
+  colorPreviewCtx.drawImage(src, (pw - dw) / 2, (ph - dh) / 2, dw, dh);
+}
 function toggleColors(show) {
   colorOverlay.style.display = show ? 'flex' : 'none';
-  if (show) syncColorPanel();
+  if (show) {
+    syncColorPanel();
+    syncColorPreview();
+    if (!colorPreviewTimer) colorPreviewTimer = setInterval(syncColorPreview, 150);
+  } else if (colorPreviewTimer) {
+    clearInterval(colorPreviewTimer);
+    colorPreviewTimer = null;
+  }
 }
 function syncColorPanel() {
   colorOverlay.querySelectorAll('[data-g]').forEach(el => {
