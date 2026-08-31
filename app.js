@@ -343,6 +343,7 @@ const COLOR_DEFAULTS = {
 };
 const colors = JSON.parse(JSON.stringify(COLOR_DEFAULTS));
 let plateVisible = true; // 孔板（水流开始平台）显示开关，随工程持久化
+let kfSnapOn = localStorage.getItem('kfSnapOn') !== '0'; // 关键帧吸附开关：跨轨道吸附，默认开启，localStorage 持久化
 
 // 参考地面网格
 const grid = new THREE.GridHelper(300, 30, 0x1d2f52, 0x14233f);
@@ -884,6 +885,35 @@ function keyIndexAt(id, t, tol = 0.5 / PREVIEW_FPS) {
 function snapToFrame(t) { // 帧吸附：时间量化到最近帧边界（PREVIEW_FPS）
   return Math.round(t * PREVIEW_FPS) / PREVIEW_FPS;
 }
+const KF_SNAP_PX = 12; // 关键帧吸附阈值（屏幕像素，随时间轴缩放自适应）
+function snapTargetT(t, skipTracks) { // 跨轨道关键帧吸附：在其余轨道中找与 t 最接近的关键帧
+  // 命中返回 {t, id, k}（吸附目标），未启用/未命中返回 null
+  if (!kfSnapOn) return null;
+  const tol = KF_SNAP_PX / state.px;
+  let best = null, bestD = tol;
+  for (const id in state.keys) {
+    if (skipTracks.has(id)) continue; // 跳过拖动组所在轨道（仅跨轨道吸附，避免同轨道自吸）
+    const ks = state.keys[id];
+    for (let i = 0; i < ks.length; i++) {
+      const d = Math.abs(ks[i].t - t);
+      if (d <= bestD) { bestD = d; best = { t: ks[i].t, id, k: ks[i] }; }
+    }
+  }
+  return best;
+}
+let snapFlashTimer = null;
+function flashSnap(s) { // 吸附命中时短暂高亮目标关键帧（按对象引用定位，重绘后仍有效）
+  if (!s || !laneEls[s.id]) return;
+  const idx = state.keys[s.id].indexOf(s.k);
+  if (idx < 0) return;
+  const el = laneEls[s.id].querySelector(`.diamond[data-index="${idx}"]`);
+  if (!el) return;
+  el.classList.add('snap-flash');
+  clearTimeout(snapFlashTimer);
+  snapFlashTimer = setTimeout(() => {
+    document.querySelectorAll('.diamond.snap-flash').forEach(x => x.classList.remove('snap-flash'));
+  }, 400);
+}
 function upsertKey(id, t, v, interp) {
   const ks = keysOf(id);
   const idx = keyIndexAt(id, t);
@@ -1291,7 +1321,7 @@ function flashHint(msg) {
   hintEl.textContent = msg; hintEl.style.color = '#8fd0ff';
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => {
-    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴（粘贴默认线性） · 框选后可批量改插值 · 双击轨道空白处加帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转（吸附帧） · Alt+滚轮 缩放时间轴 · 🎙 导入口播 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程 · ❓ 帮助看板';
+    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴（粘贴默认线性） · 框选后可批量改插值 · 双击轨道空白处加帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转（吸附帧） · 🧲 吸附：拖动关键帧对齐其他轨道 · Alt+滚轮 缩放时间轴 · 🎙 导入口播 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程 · ❓ 帮助看板';
     hintEl.style.color = '';
   }, 7000);
 }
@@ -1574,7 +1604,7 @@ function bindTimelineEvents() {
       renderDiamonds();
     }
     beginGesture();
-    drag = { trackId, index, moved: false,
+    drag = { trackId, index, moved: false, lastSnap: null,
       group: [...state.sel].map(key => {
         const [id, i] = key.split(':');
         const kf = keysOf(id)[+i];
@@ -1592,7 +1622,11 @@ function bindTimelineEvents() {
     if (!k) { drag = null; return; }
     if (!drag.moved) snapshot();
     const main = drag.group.find(g => g.id === drag.trackId && g.i === drag.index);
-    const delta = main ? t - main.initT : 0;
+    const skipTracks = new Set(drag.group.map(g => g.id)); // 拖动组所在轨道不参与吸附目标
+    const snapped = main ? snapTargetT(t, skipTracks) : null; // 跨轨道关键帧吸附
+    const targetT = snapped ? snapped.t : t;
+    if (snapped) { drag.lastSnap = snapped; flashSnap(snapped); } // 吸附命中 → 高亮目标帧
+    const delta = main ? targetT - main.initT : 0;
     for (const g of drag.group) { // 整组同步移动（逐帧吸附）
       if (!g.k) continue;
       g.k.t = snapToFrame(Math.min(state.duration, Math.max(0, g.initT + delta)));
@@ -1612,6 +1646,7 @@ function bindTimelineEvents() {
       }
       state.sel = ns; syncSelected();
       renderTimeline(); applyAll(state.time);
+      if (drag.lastSnap) flashSnap(drag.lastSnap); // 重绘后补一次吸附高亮，反馈更清晰
     }
     drag = null;
   });
@@ -2398,6 +2433,23 @@ document.getElementById('btn-plate').addEventListener('click', () => {
   document.getElementById('btn-plate').classList.toggle('on', plateVisible);
   scheduleAutosave();
 });
+// 关键帧吸附开关（跨轨道吸附，localStorage 持久化，不随工程保存）
+const btnKfSnap = document.getElementById('btn-kf-snap');
+function syncKfSnapBtn() {
+  btnKfSnap.classList.toggle('on', kfSnapOn);
+  btnKfSnap.title = kfSnapOn
+    ? '关键帧吸附：已开启 — 拖动关键帧会自动吸附到其他轨道上相近的关键帧（点击关闭）'
+    : '关键帧吸附：已关闭 — 拖动关键帧不再吸附其他轨道（点击开启）';
+}
+btnKfSnap.addEventListener('click', () => {
+  kfSnapOn = !kfSnapOn;
+  localStorage.setItem('kfSnapOn', kfSnapOn ? '1' : '0');
+  syncKfSnapBtn();
+  flashHint(kfSnapOn
+    ? '🧲 关键帧吸附已开启：拖动关键帧会吸附到其他轨道上相近的关键帧'
+    : '关键帧吸附已关闭：拖动关键帧不再吸附其他轨道');
+});
+syncKfSnapBtn();
 // 背景色：预设下拉（深空蓝/纯黑/纯白/纯绿抠像）+ 自定义取色器，scene.background 实时生效并写入工程/导出
 const BG_PRESETS = {
   '#0b1526': '深空蓝（默认）',
