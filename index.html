@@ -203,6 +203,7 @@
   .diamond.step{background:var(--grey); border-radius:2px; transform:rotate(0);}
   .diamond:hover{filter:brightness(1.25);}
   .diamond.selected{outline:2px solid #fff; outline-offset:1px; z-index:6;}
+  .diamond.snap-flash{outline:2px solid #ffd76a; outline-offset:2px; filter:brightness(1.6);}
   #marquee{
     position:absolute; z-index:40; display:none; pointer-events:none;
     background:rgba(90,162,240,.14); border:1px solid #5aa2f0;
@@ -414,6 +415,7 @@
       <label class="tl-hint" title="播放头/关键帧/粘贴均自动吸附到帧边界（帧率见状态栏，默认 30fps）">🧲 帧吸附</label>
       <label class="tl-hint" title="按住 Alt 滚动鼠标滚轮：以鼠标位置为中心缩放时间轴（等效于拖动缩放滑杆）">🔍 Alt+滚轮缩放</label>
       <label class="tl-hint" title="⌘C/⌃C 复制选中关键帧 · ⌘X/⌃X 剪切 · ⌘V/⌃V 粘贴到当前播放头位置（保持各帧相对时间偏移，支持框选批量）">⧉ 复制粘贴</label>
+      <button id="btn-kf-snap" class="tbtn on" title="关键帧吸附：拖动关键帧时自动吸附到其他轨道上相近的关键帧，让不同轨道的帧对齐到同一时间列">🧲 吸附</button>
       <button id="btn-key-all" class="tbtn" title="为所有轨道在当前时间添加关键帧">◇ 全部打关键帧</button>
       <button id="btn-del-key" class="tbtn" title="删除当前选中的关键帧（支持框选批量删除）">🗑 删除关键帧</button>
       <button id="btn-paste-key" class="tbtn" title="把剪贴板中的关键帧粘贴到当前播放头位置，保持相对时间偏移（⌘V / Ctrl+V），粘贴的帧默认线性插值">📋 粘贴关键帧</button>
@@ -568,6 +570,7 @@
         <li><b>参数范围手柄</b>：<em>新增</em>——每个参数的滑杆是常用调节范围（手柄），数值框或按住拖拽可<b>继续超出增减</b>（安全边界内）；超出后滑杆贴边并变红高亮</li>
         <li><b>选中</b>：单击菱形单选；<b>⛶ 框选</b>——在轨道空白处按住拖出矩形框选多帧（<kbd>Shift</kbd> 追加选择）</li>
         <li><b>移动</b>：拖动菱形改时间；框选后拖动任一帧<em>整组同步移动</em></li>
+        <li><b>🧲 关键帧吸附</b>：工具栏「吸附」开关（默认开启）——拖动关键帧时自动吸附到<b>其他轨道</b>上相近的关键帧，让不同轨道的帧对齐到同一时间列（阈值随时间轴缩放自适应，吸附命中时目标帧金色高亮）</li>
         <li><b>编辑数值</b>：双击菱形打开编辑器（时间 / 数值 / 插值）</li>
         <li><b>复制 / 剪切 / 粘贴</b>：<kbd>⌘C</kbd>/<kbd>⌃C</kbd>、<kbd>⌘X</kbd>/<kbd>⌃X</kbd>、<kbd>⌘V</kbd>/<kbd>⌃V</kbd>（或 📋 按钮）——粘贴到播放头位置，保持各帧相对时间偏移，<em>粘贴的帧默认线性插值</em></li>
         <li><b>∿ 批量插值</b>：<em>新增</em>——选中（或框选）关键帧后，用工具栏「批量插值」下拉一键改为 平滑 / 线性 / 阶梯，一次可撤回</li>
