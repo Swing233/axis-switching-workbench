@@ -347,6 +347,13 @@ let kfSnapOn = localStorage.getItem('kfSnapOn') !== '0'; // 关键帧吸附开�
 let shiftHeld = false; // Shift 精细调节：拖动数据条（range 滑块）时按住 Shift 用 1/10 步进
 document.addEventListener('keydown', e => { if (e.key === 'Shift') shiftHeld = true; });
 document.addEventListener('keyup', e => { if (e.key === 'Shift') shiftHeld = false; });
+let pickTargetMode = false; // 视觉中心拾取模式：在画面上点选主体设为视觉中心
+let freePivot = new THREE.Vector3(0, -L0 / 2, 0); // 自由视角旋转中心（取消"看向视觉中心"后 = 相机前方视线点，而非视觉中心）
+function camForward() { return new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); }
+function refreshFreePivot() { // 自由视角旋转中心 = 相机当前朝向的视线点（保持当前轨道半径）
+  const dist = Math.max(20, camera.position.distanceTo(controls.target));
+  freePivot.copy(camera.position).add(camForward().multiplyScalar(dist));
+}
 window.addEventListener('blur', () => { shiftHeld = false; });
 
 // 参考地面网格
@@ -892,7 +899,8 @@ function snapToFrame(t) { // 帧吸附：时间量化到最近帧边界（PREVIE
 const KF_SNAP_PX = 12; // 关键帧吸附阈值（屏幕像素，随时间轴缩放自适应）
 function snapTargetT(t, skipTracks) { // 跨轨道关键帧吸附：在其余轨道中找与 t 最接近的关键帧
   // 命中返回 {t, id, k}（吸附目标），未启用/未命中返回 null
-  if (!kfSnapOn) return null;
+  const snap = shiftHeld ? !kfSnapOn : kfSnapOn; // 拖动时按住 Shift 临时反转吸附开关（开→临时不吸，关→临时吸）
+  if (!snap) return null;
   const tol = KF_SNAP_PX / state.px;
   let best = null, bestD = tol;
   for (const id in state.keys) {
@@ -1218,8 +1226,11 @@ function applyAll(t, forceCamera = false) {
     }
     if (camera.fov !== v.fov) { camera.fov = v.fov; camera.updateProjectionMatrix(); }
   }
-  // 自由视角下允许用户平移视觉中心（右键拖拽），不强制写回关键帧求值
-  if (driveCamera) controls.target.set(v.tgtX, v.tgtY, v.tgtZ);
+  // 自由视角旋转中心：看向视觉中心 → 视觉中心；取消看向 → 相机前方视线点（不随视觉中心）
+  if (driveCamera) {
+    if (state.lookAtTarget) controls.target.set(v.tgtX, v.tgtY, v.tgtZ);
+    else controls.target.copy(freePivot);
+  }
 
   // 从上方俯视时让孔板近乎隐形
   const pmat = jet.plateMat;
@@ -1254,7 +1265,25 @@ const panelInputs = {}; // id -> {range, num, kfBtn, segBtns?}
         chk.className = 'chkrow';
         chk.innerHTML = `<input type="checkbox" id="chk-lookat" checked/> 摄像机始终看向视觉中心（取消后用旋转关键帧控制朝向）`;
         panel.appendChild(chk);
-        chk.querySelector('input').addEventListener('change', e => { state.lookAtTarget = e.target.checked; applyAll(state.time); scheduleAutosave(); });
+        chk.querySelector('input').addEventListener('change', e => {
+          const on = e.target.checked;
+          if (state.lookAtTarget && !on) {
+            // 取消"始终看向视觉中心"：把当前画面朝向写入旋转关键帧，保证画面不跳变；
+            // 自由视角旋转中心同步切到相机前方视线点（不再以视觉中心为旋转中心）
+            snapshot();
+            const eul = new THREE.Euler(0, 0, 0, 'YXZ').setFromQuaternion(camera.quaternion);
+            const set = (id, v) => upsertKey(id, state.time, clampTrack(id, v));
+            set('rotX', THREE.MathUtils.radToDeg(eul.x));
+            set('rotY', THREE.MathUtils.radToDeg(eul.y));
+            set('rotZ', THREE.MathUtils.radToDeg(eul.z));
+            renderTimeline();
+            refreshFreePivot();
+            if (state.view === 'free') controls.target.copy(freePivot);
+          }
+          state.lookAtTarget = on;
+          applyAll(state.time);
+          scheduleAutosave();
+        });
       }
       lastGroup = tr.g;
     }
@@ -1346,7 +1375,7 @@ function flashHint(msg) {
   hintEl.textContent = msg; hintEl.style.color = '#8fd0ff';
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => {
-    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴（粘贴默认线性） · 框选后可批量改插值 · 双击轨道空白处加帧 · 拖动数值改参数（自动打帧，Shift 细调） · 标尺/轨道拖动跳转（吸附帧） · 🧲 吸附：拖动关键帧对齐其他轨道 · Alt+滚轮 缩放时间轴 · 🎙 导入口播 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程 · ❓ 帮助看板';
+    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete/X 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴（粘贴默认线性） · 框选后可批量改插值 · 双击轨道空白处加帧 · 拖动数值改参数（自动打帧，Shift 细调） · 标尺/轨道拖动跳转（吸附帧） · 🧲 吸附：拖动关键帧对齐其他轨道（Shift 临时反转） · ◎ 视觉中心：点选主体 · 自由视角松手自动同步并切回 · Alt+滚轮 缩放时间轴 · 🎙 导入口播 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程 · ❓ 帮助看板';
     hintEl.style.color = '';
   }, 7000);
 }
@@ -1887,6 +1916,7 @@ window.addEventListener('keydown', e => {
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.code === 'KeyZ') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
   if (mod && e.code === 'KeyY') { e.preventDefault(); redo(); return; }
+  if (e.key === 'Escape' && pickTargetMode) { setPickMode(false); return; } // 视觉中心拾取模式优先退出
   if (e.key === 'Escape' && colorOverlay.style.display === 'flex') { toggleColors(false); return; } // 配色面板优先关闭
   if (e.key === 'Escape' && helpOverlay.style.display === 'flex') { toggleHelp(false); return; } // 帮助看板优先关闭（不受输入框焦点影响）
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
@@ -1896,8 +1926,8 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Space') { e.preventDefault(); setPlaying(!state.playing); }
   else if (e.key === 'ArrowLeft') { e.preventDefault(); seek(state.time - 1 / PREVIEW_FPS); } // 阻止默认横向滚动
   else if (e.key === 'ArrowRight') { e.preventDefault(); seek(state.time + 1 / PREVIEW_FPS); }
-  else if (e.key === 'Delete' || e.key === 'Backspace') {
-    deleteSelection();
+  else if (e.key === 'Delete' || e.key === 'Backspace' || e.key === 'x' || e.key === 'X') {
+    deleteSelection(); // X 键也是删除（⌘X/⌃X 剪切不受影响）
   } else if (e.key === 'Escape') {
     closeKfEditor();
     if (state.sel.size) { clearSelection(); renderDiamonds(); }
@@ -1910,15 +1940,17 @@ window.addEventListener('keydown', e => {
 const btnView = document.getElementById('btn-view');
 const viewBadge = document.getElementById('view-badge');
 function setView(mode) {
+  if (pickTargetMode) setPickMode(false); // 切换视角前退出拾取模式
   state.view = mode;
   const free = mode === 'free';
-  controls.enabled = free;
+  controls.enabled = free && !pickTargetMode;
   btnView.textContent = free ? '🖐 自由视角' : '🎥 摄像机视角';
   btnView.classList.toggle('on', !free);
   btnSyncCam.classList.toggle('on', free);
   viewBadge.textContent = free
-    ? '自由视角 · 拖拽旋转 / 滚轮缩放 / 右键平移（不影响关键帧）'
+    ? '自由视角 · 拖拽旋转 / 滚轮缩放 / 右键平移 · 松手自动同步到关键帧并切回摄像机视角'
     : '摄像机视角 · 按关键帧动画渲染';
+  if (free && !state.lookAtTarget) refreshFreePivot(); // 取消看向视觉中心：自由视角旋转中心 = 相机前方视线点
   applyAll(state.time);
   scheduleAutosave();
 }
@@ -1943,9 +1975,13 @@ function syncFreeViewToKeys() {
   set('camX', camera.position.x);
   set('camY', camera.position.y);
   set('camZ', camera.position.z);
-  set('tgtX', controls.target.x);
-  set('tgtY', controls.target.y);
-  set('tgtZ', controls.target.z);
+  if (state.lookAtTarget) {
+    // 看向视觉中心：旋转中心即视觉中心，写入；取消看向时 controls.target 是视线点，
+    // 写它会偏移视觉中心，故跳过（视觉中心保持关键帧原有值）
+    set('tgtX', controls.target.x);
+    set('tgtY', controls.target.y);
+    set('tgtZ', controls.target.z);
+  }
   if (!state.lookAtTarget) {
     const eul = new THREE.Euler(0, 0, 0, 'YXZ').setFromQuaternion(camera.quaternion);
     set('rotX', THREE.MathUtils.radToDeg(eul.x));
@@ -1954,15 +1990,74 @@ function syncFreeViewToKeys() {
   }
   renderTimeline();
   applyAll(state.time);
-  viewBadge.textContent = `📌 已同步自由视角机位 → 关键帧 @ ${t.toFixed(2)}s${state.lookAtTarget ? '' : '（含旋转）'}`;
+  viewBadge.textContent = `📌 已同步自由视角机位 → 关键帧 @ ${t.toFixed(2)}s${state.lookAtTarget ? '' : '（含旋转，视觉中心保持不变）'}`;
   clearTimeout(syncToastTimer);
   syncToastTimer = setTimeout(() => {
     viewBadge.textContent = state.view === 'free'
-      ? '自由视角 · 拖拽旋转 / 滚轮缩放 / 右键平移（不影响关键帧）'
+      ? '自由视角 · 拖拽旋转 / 滚轮缩放 / 右键平移 · 松手自动同步到关键帧并切回摄像机视角'
       : '摄像机视角 · 按关键帧动画渲染';
   }, 2200);
 }
 btnSyncCam.addEventListener('click', syncFreeViewToKeys);
+
+// --- 自由视角调整机位后：自动同步到关键帧并切回摄像机视角 ---
+// （阻尼稳定后触发；纯点击/无位移不触发，避免冗余关键帧）
+let freeCamStart = null;
+controls.addEventListener('start', () => {
+  if (state.view !== 'free' || pickTargetMode) return;
+  freeCamStart = { px: camera.position.clone(), tx: controls.target.clone() };
+});
+controls.addEventListener('end', () => {
+  if (state.view !== 'free' || pickTargetMode || !freeCamStart) return;
+  const s = freeCamStart; freeCamStart = null;
+  if (camera.position.distanceTo(s.px) < 0.05 && controls.target.distanceTo(s.tx) < 0.05) return; // 纯点击
+  syncFreeViewToKeys();
+  setView('camera');
+});
+
+// --- 视觉中心拾取：点选画布上的主体，将其设为视觉中心 ---
+const btnPickTgt = document.getElementById('btn-pick-tgt');
+const pickRaycaster = new THREE.Raycaster();
+let pickDownPos = null;
+function setPickMode(on) {
+  pickTargetMode = on;
+  btnPickTgt.classList.toggle('on', on);
+  renderer.domElement.style.cursor = on ? 'crosshair' : '';
+  controls.enabled = !on && state.view === 'free'; // 拾取期间禁用轨道控制，避免误转视角
+  viewBadge.textContent = on
+    ? '🎯 拾取模式：在画面上点击主体，将其设为视觉中心（Esc 退出）'
+    : (state.view === 'free'
+      ? '自由视角 · 拖拽旋转 / 滚轮缩放 / 右键平移 · 松手自动同步到关键帧并切回摄像机视角'
+      : '摄像机视角 · 按关键帧动画渲染');
+}
+btnPickTgt.addEventListener('click', () => setPickMode(!pickTargetMode));
+renderer.domElement.addEventListener('pointerdown', e => { if (pickTargetMode) pickDownPos = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!pickTargetMode) return;
+  if (!pickDownPos || Math.hypot(e.clientX - pickDownPos.x, e.clientY - pickDownPos.y) > 5) return; // 忽略拖动
+  pickDownPos = null;
+  pickAt(e);
+});
+function pickAt(e) { // 射线拾取：命中点写入视觉中心关键帧
+  const rect = renderer.domElement.getBoundingClientRect();
+  const ndc = new THREE.Vector2(
+    ((e.clientX - rect.left) / rect.width) * 2 - 1,
+    -((e.clientY - rect.top) / rect.height) * 2 + 1,
+  );
+  pickRaycaster.setFromCamera(ndc, camera);
+  const hits = pickRaycaster.intersectObjects(scene.children, true);
+  if (!hits.length) { flashHint('未点中任何主体，再试一次'); return; }
+  const pt = hits[0].point;
+  snapshot();
+  const set = (id, v) => upsertKey(id, state.time, clampTrack(id, v));
+  set('tgtX', pt.x); set('tgtY', pt.y); set('tgtZ', pt.z);
+  controls.target.copy(pt);
+  renderTimeline();
+  applyAll(state.time);
+  if (state.view === 'free' && !state.lookAtTarget) controls.target.copy(freePivot); // 取消看向：旋转中心保持相机视线点，不随新视觉中心
+  setPickMode(false);
+  flashHint(`🎯 视觉中心已设为 (${pt.x.toFixed(1)}, ${pt.y.toFixed(1)}, ${pt.z.toFixed(1)})，摄像机已对准（⌘Z 可撤回）`);
+}
 
 // --- 撤销 / 重做按钮 ---
 document.getElementById('btn-undo').addEventListener('click', undo);
