@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<link rel="icon" href="data:,"/>
+<html lang="zh-CN" data-page-node-id="50Z16gRhswR4biG9Q1UhV2">
+<head data-page-node-id="xwg38UV6726dglzD4oqM6P">
+<meta charset="UTF-8" data-page-node-id="PBnh3y2euCrjnrknM2zEHY"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="vabKLFLE37KsXPcDMp7VPd"/>
+<link rel="icon" href="data:," data-page-node-id="YueRfJHkGe4NdsNcmN9v44"/>
 <title>射流轴交换 · Axis Switching — 关键帧动画工作台</title>
 <style>
   :root{
@@ -96,6 +96,7 @@
   .prow .pname{width:74px; flex:0 0 74px; color:var(--dim); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .prow input[type=range]{flex:1; min-width:0; accent-color:var(--accent); height:18px;}
   .prow input[type=range].overflow{accent-color:#ff7b6b; box-shadow:0 0 0 1px rgba(255,123,107,.45); border-radius:4px;}
+  .prow input[type=range].fine{accent-color:var(--accent2); box-shadow:0 0 0 2px rgba(77,243,255,.55); border-radius:4px;}
   .prow input[type=number]{
     width:56px; flex:0 0 56px; background:#14161b; color:var(--text);
     border:1px solid var(--line); border-radius:4px; padding:2px 4px; font-size:11.5px;
@@ -354,264 +355,264 @@
 </script>
 <script src="./assets/vendor/jszip.min.js"></script>
 </head>
-<body>
-<div id="app">
-  <div id="topbar">
-    <div class="logo">✦ 射流轴交换 · Axis Switching 动画工作台</div>
-    <div class="sep"></div>
-    <button id="btn-view" class="tbtn on">🎥 摄像机视角</button>
-    <button id="btn-sync-cam" class="tbtn" title="把当前视口机位写入播放头时间的关键帧：自由视角摆好机位（旋转/缩放/右键平移）后点此，动画在该时刻即使用此视角">📌 同步视角</button>
-    <button id="btn-grid" class="tbtn on" title="显示/隐藏全局参考网格">📐 网格</button>
-    <button id="btn-frame" class="tbtn on" title="显示/隐藏最终导出视频画幅（安全框，虚线范围即导出画面）">🔲 画幅框</button>
-    <button id="btn-plate" class="tbtn on" title="显示/隐藏水流开始的孔板平台">🕳 孔板</button>
-    <select id="sel-bg" title="切换预览与导出视频的背景色为纯色（纯黑 / 纯白 / 纯绿抠像等），或用右侧色板自定义任意颜色；背景会一并写入导出画面">
-      <option value="">🎨 背景</option>
-      <option value="#0b1526">深空蓝（默认）</option>
-      <option value="#000000">纯黑</option>
-      <option value="#ffffff">纯白</option>
-      <option value="#00b140">纯绿（抠像）</option>
+<body data-page-node-id="CfKyToNCYXoCBZPDWf7req">
+<div id="app" data-page-node-id="jAAQQI8VQcvb2eZMPE4COc">
+  <div id="topbar" data-page-node-id="HPFztcDGBeHslt21asw8FB">
+    <div class="logo" data-page-node-id="N60b1PuHeesFBtcmBsC79h">✦ 射流轴交换 · Axis Switching 动画工作台</div>
+    <div class="sep" data-page-node-id="qRmhrW0phOAoVBKHOwEQXs"></div>
+    <button id="btn-view" class="tbtn on" data-page-node-id="zWsDdpkSyDseeYOXYC14Rk">🎥 摄像机视角</button>
+    <button id="btn-sync-cam" class="tbtn" title="把当前视口机位写入播放头时间的关键帧：自由视角摆好机位（旋转/缩放/右键平移）后点此，动画在该时刻即使用此视角" data-page-node-id="1l7uTQGEzpfoMwEm1YzI8I">📌 同步视角</button>
+    <button id="btn-grid" class="tbtn on" title="显示/隐藏全局参考网格" data-page-node-id="u84QXLiJLZBFnfVFNvxZyK">📐 网格</button>
+    <button id="btn-frame" class="tbtn on" title="显示/隐藏最终导出视频画幅（安全框，虚线范围即导出画面）" data-page-node-id="tJ7TPl9k6rVZNIG9JTEFDJ">🔲 画幅框</button>
+    <button id="btn-plate" class="tbtn on" title="显示/隐藏水流开始的孔板平台" data-page-node-id="TaN0LQQwtUdHqTrLW00lFg">🕳 孔板</button>
+    <select id="sel-bg" title="切换预览与导出视频的背景色为纯色（纯黑 / 纯白 / 纯绿抠像等），或用右侧色板自定义任意颜色；背景会一并写入导出画面" data-page-node-id="e6p6hnlpzlJOICHPu8QXSX">
+      <option value="" data-page-node-id="hGvCAC8HH0nabUOkcn0XOq">🎨 背景</option>
+      <option value="#0b1526" data-page-node-id="GVDPe2oI5LoEBkTe8vOvH2">深空蓝（默认）</option>
+      <option value="#000000" data-page-node-id="cDyQWCTzgS4WJxjcI5eNuq">纯黑</option>
+      <option value="#ffffff" data-page-node-id="TK6u3mBeuP0rQwEK9mUA3d">纯白</option>
+      <option value="#00b140" data-page-node-id="VFceDLZzKJ5ElqH0pxerpI">纯绿（抠像）</option>
     </select>
-    <input type="color" id="bg-color" value="#0b1526" title="自定义背景颜色（实时生效，导出视频同步使用；纯色抠像建议关闭 📐 网格）"/>
-    <button id="btn-audio" class="tbtn" title="导入外部音频（口播/配乐），在时间轴上显示波形并对齐关键帧节奏">🎙 导入口播</button>
-    <input type="file" id="file-audio" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" hidden/>
-    <div class="sep"></div>
-    <button id="btn-project-save" class="tbtn" title="把当前工程（全部关键帧与设置）保存为 .json 文件，可备份/分享，随时用「打开工程」恢复">💾 保存工程</button>
-    <button id="btn-project-open" class="tbtn" title="从本地 .json 工程文件恢复全部关键帧与设置（也可直接把文件拖进页面）">📂 打开工程</button>
-    <button id="btn-project-new" class="tbtn" title="清空当前内容，新建工程（恢复默认演示动画）">🗑 新建</button>
-    <input type="file" id="file-project" accept=".json,application/json" hidden/>
-    <button id="btn-export" class="tbtn primary">⬇ 导出动画</button>
-    <button id="btn-color" class="tbtn" title="配色：更改不同线条的颜色，以及液柱/截面/前端/扫描框等平面的颜色与透明度">🎨 配色</button>
-    <button id="btn-help" class="tbtn" title="打开帮助看板：全部功能与快捷键总览（Esc 关闭）">❓ 帮助</button>
-    <div class="spacer"></div>
-    <div class="hint">💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · 双击轨道空白处添加关键帧 · ❓ 帮助看板看全部功能</div>
+    <input type="color" id="bg-color" value="#0b1526" title="自定义背景颜色（实时生效，导出视频同步使用；纯色抠像建议关闭 📐 网格）" data-page-node-id="vCECNF84463GSwrfSVUuyB"/>
+    <button id="btn-audio" class="tbtn" title="导入外部音频（口播/配乐），在时间轴上显示波形并对齐关键帧节奏" data-page-node-id="LppLmrX8FpykqgXYrPKqVF">🎙 导入口播</button>
+    <input type="file" id="file-audio" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" hidden data-page-node-id="hBc8MS1yErRxhiXDBF0LFB"/>
+    <div class="sep" data-page-node-id="RasO8YBU4zalbQlzJDoAKu"></div>
+    <button id="btn-project-save" class="tbtn" title="把当前工程（全部关键帧与设置）保存为 .json 文件，可备份/分享，随时用「打开工程」恢复" data-page-node-id="FHCXTPtNliVl5HfDnddNOU">💾 保存工程</button>
+    <button id="btn-project-open" class="tbtn" title="从本地 .json 工程文件恢复全部关键帧与设置（也可直接把文件拖进页面）" data-page-node-id="S4Eo97hAOlCjAcFC1BevHf">📂 打开工程</button>
+    <button id="btn-project-new" class="tbtn" title="清空当前内容，新建工程（恢复默认演示动画）" data-page-node-id="oDtgvPHiPpeIt1avnDoHkB">🗑 新建</button>
+    <input type="file" id="file-project" accept=".json,application/json" hidden data-page-node-id="60wHU41bGB0muEUaEcj7hm"/>
+    <button id="btn-export" class="tbtn primary" data-page-node-id="oUr9uCqnvg3k0kcwH7svgN">⬇ 导出动画</button>
+    <button id="btn-color" class="tbtn" title="配色：更改不同线条的颜色，以及液柱/截面/前端/扫描框等平面的颜色与透明度" data-page-node-id="tDHU9m8FqHHyDfI0Yl04yT">🎨 配色</button>
+    <button id="btn-help" class="tbtn" title="打开帮助看板：全部功能与快捷键总览（Esc 关闭）" data-page-node-id="DsNqny21nuCUUlRq4qwy9C">❓ 帮助</button>
+    <div class="spacer" data-page-node-id="sIKcFnPdC5Q303pRa2qviG"></div>
+    <div class="hint" data-page-node-id="FC0pNBH73fGX7HfIVsrjD2">💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · 双击轨道空白处添加关键帧 · ❓ 帮助看板看全部功能</div>
   </div>
 
-  <div id="main">
-    <div id="viewport-wrap">
-      <div id="viewport"></div>
-      <div id="safe-frame"><span id="safe-label">1920×1080</span></div>
-      <div id="view-badge">摄像机视角 · 按关键帧动画渲染</div>
+  <div id="main" data-page-node-id="fuUE7SJB49hdIkWVDZhyO9">
+    <div id="viewport-wrap" data-page-node-id="26m0Z7HQWFVg5f3Ha6Bnrs">
+      <div id="viewport" data-page-node-id="NXVS03olnB6W6D9GnJJmCl"></div>
+      <div id="safe-frame" data-page-node-id="cLFNkcxLM5QH5yCEx8TZDK"><span id="safe-label" data-page-node-id="KDNiGUF2hvMcIohBULICur">1920×1080</span></div>
+      <div id="view-badge" data-page-node-id="AOLIPSBJutkvRZcqNoPfTG">摄像机视角 · 按关键帧动画渲染</div>
     </div>
-    <div id="panel"></div>
+    <div id="panel" data-page-node-id="bRft3CiPpcW98hjyuIO6O7"></div>
   </div>
 
-  <div id="splitter"></div>
+  <div id="splitter" data-page-node-id="oAMl28fEw3InM62UUSWgPh"></div>
 
-  <div id="timeline">
-    <div id="tl-toolbar">
-      <button id="btn-start" class="tbtn icon-btn" title="回到开头">⏮</button>
-      <button id="btn-prevf" class="tbtn icon-btn" title="上一帧">◀</button>
-      <button id="btn-play" class="tbtn icon-btn" title="播放/暂停（空格）">▶</button>
-      <button id="btn-nextf" class="tbtn icon-btn" title="下一帧">▶</button>
-      <button id="btn-end" class="tbtn icon-btn" title="到结尾">⏭</button>
-      <label><input type="checkbox" id="chk-loop" checked/>循环</label>
-      <div id="time-display">0.00s · 帧 0</div>
-      <div class="sep" style="width:1px;height:20px;background:var(--line)"></div>
-      <label>时长<input type="number" id="inp-duration" min="1" max="300" step="1" value="14"/>s</label>
-      <label>缩放<input type="range" id="inp-zoom" min="30" max="500" step="5" value="95"/></label>
-      <span id="audio-chip" title="点击移除音频" style="display:none;align-items:center;gap:6px;height:24px;padding:0 9px;background:#23262e;border:1px solid #3a4050;border-radius:5px;font-size:11px;color:#8fd0ff;cursor:pointer;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis">🎙 <span id="audio-chip-name"></span> · <span id="audio-chip-dur"></span> <span style="color:#e5645f">✕</span></span>
-      <div class="spacer"></div>
-      <label class="tl-hint" title="在轨道区按住鼠标拖拽框选多个关键帧 · 拖动任意选中帧可整组移动 · Delete 批量删除">⛶ 拖拽框选</label>
-      <label class="tl-hint" title="播放头/关键帧/粘贴均自动吸附到帧边界（帧率见状态栏，默认 30fps）">🧲 帧吸附</label>
-      <label class="tl-hint" title="按住 Alt 滚动鼠标滚轮：以鼠标位置为中心缩放时间轴（等效于拖动缩放滑杆）">🔍 Alt+滚轮缩放</label>
-      <label class="tl-hint" title="⌘C/⌃C 复制选中关键帧 · ⌘X/⌃X 剪切 · ⌘V/⌃V 粘贴到当前播放头位置（保持各帧相对时间偏移，支持框选批量）">⧉ 复制粘贴</label>
-      <button id="btn-kf-snap" class="tbtn on" title="关键帧吸附：拖动关键帧时自动吸附到其他轨道上相近的关键帧，让不同轨道的帧对齐到同一时间列">🧲 吸附</button>
-      <button id="btn-key-all" class="tbtn" title="为所有轨道在当前时间添加关键帧">◇ 全部打关键帧</button>
-      <button id="btn-del-key" class="tbtn" title="删除当前选中的关键帧（支持框选批量删除）">🗑 删除关键帧</button>
-      <button id="btn-paste-key" class="tbtn" title="把剪贴板中的关键帧粘贴到当前播放头位置，保持相对时间偏移（⌘V / Ctrl+V），粘贴的帧默认线性插值">📋 粘贴关键帧</button>
-      <select id="sel-interp" title="批量修改选中关键帧的插值类型（先点击或框选关键帧）">
-        <option value="" selected>∿ 批量插值…</option>
-        <option value="smooth">→ 平滑（贝塞尔）</option>
-        <option value="linear">→ 线性</option>
-        <option value="step">→ 阶梯（保持）</option>
+  <div id="timeline" data-page-node-id="D4gbDkvBAXAJt34hiN2reZ">
+    <div id="tl-toolbar" data-page-node-id="fvJRFPamTd1Px9mLr5WA7q">
+      <button id="btn-start" class="tbtn icon-btn" title="回到开头" data-page-node-id="hN0doCzlsObFIcvDvBguQi">⏮</button>
+      <button id="btn-prevf" class="tbtn icon-btn" title="上一帧" data-page-node-id="cyzuHYa3UHCMv6Mzb24qvb">◀</button>
+      <button id="btn-play" class="tbtn icon-btn" title="播放/暂停（空格）" data-page-node-id="UbocOsb8CIp8nBba2pL8Ev">▶</button>
+      <button id="btn-nextf" class="tbtn icon-btn" title="下一帧" data-page-node-id="lXVmTvcClN6FgBcsSzPCBY">▶</button>
+      <button id="btn-end" class="tbtn icon-btn" title="到结尾" data-page-node-id="hj72nuZiuOkqjrZDcGsYxD">⏭</button>
+      <label data-page-node-id="3kWAHclGdB7w5VoyHicLAL"><input type="checkbox" id="chk-loop" checked data-page-node-id="hmE2bEggS7PkjDw59RO31S"/>循环</label>
+      <div id="time-display" data-page-node-id="F50H24HEu81HchLDBUssOw">0.00s · 帧 0</div>
+      <div class="sep" style="width:1px;height:20px;background:var(--line)" data-page-node-id="RfQiqbchOONzQaRTNP40vW"></div>
+      <label data-page-node-id="PHWYrn9rvY8yudBWbVqf3D">时长<input type="number" id="inp-duration" min="1" max="300" step="1" value="14" data-page-node-id="JyPNniuTR1OsdIa9O6tRAb"/>s</label>
+      <label data-page-node-id="iEXl7CNybi4yVy5a6f9cXE">缩放<input type="range" id="inp-zoom" min="30" max="500" step="5" value="95" data-page-node-id="nAJBSI7V1APMcMB8LovfeH"/></label>
+      <span id="audio-chip" title="点击移除音频" style="display:none;align-items:center;gap:6px;height:24px;padding:0 9px;background:#23262e;border:1px solid #3a4050;border-radius:5px;font-size:11px;color:#8fd0ff;cursor:pointer;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis" data-page-node-id="CCuFQUd4vKUWCUkPdiGMui">🎙 <span id="audio-chip-name" data-page-node-id="efBMPvYfs27Dmh9ZYh3uqt"></span> · <span id="audio-chip-dur" data-page-node-id="CFiD8WIUqVOda8a2OIXxpo"></span> <span style="color:#e5645f" data-page-node-id="kKsZSWKOSARvR83VJ5p7Kr">✕</span></span>
+      <div class="spacer" data-page-node-id="JI1w8C9dAYjsx8A1TDoNLQ"></div>
+      <label class="tl-hint" title="在轨道区按住鼠标拖拽框选多个关键帧 · 拖动任意选中帧可整组移动 · Delete 批量删除" data-page-node-id="4JaIOPR2afkW0oJGxkCu07">⛶ 拖拽框选</label>
+      <label class="tl-hint" title="播放头/关键帧/粘贴均自动吸附到帧边界（帧率见状态栏，默认 30fps）" data-page-node-id="Fp2NlfXeFFDcsUwyFEnk6t">🧲 帧吸附</label>
+      <label class="tl-hint" title="按住 Alt 滚动鼠标滚轮：以鼠标位置为中心缩放时间轴（等效于拖动缩放滑杆）" data-page-node-id="AYN07EdU2fReFc6e8OApUz">🔍 Alt+滚轮缩放</label>
+      <label class="tl-hint" title="⌘C/⌃C 复制选中关键帧 · ⌘X/⌃X 剪切 · ⌘V/⌃V 粘贴到当前播放头位置（保持各帧相对时间偏移，支持框选批量）" data-page-node-id="NVdEmb1jt0uJywKGTa2hx3">⧉ 复制粘贴</label>
+      <button id="btn-kf-snap" class="tbtn on" title="关键帧吸附：拖动关键帧时自动吸附到其他轨道上相近的关键帧，让不同轨道的帧对齐到同一时间列" data-page-node-id="ABIG20JT3ZHbOCWiSNVuzF">🧲 吸附</button>
+      <button id="btn-key-all" class="tbtn" title="为所有轨道在当前时间添加关键帧" data-page-node-id="LdIOSgfi79lkIEOTRxwVYG">◇ 全部打关键帧</button>
+      <button id="btn-del-key" class="tbtn" title="删除当前选中的关键帧（支持框选批量删除）" data-page-node-id="10Ll4hqGso9O0TSRN1tp2Y">🗑 删除关键帧</button>
+      <button id="btn-paste-key" class="tbtn" title="把剪贴板中的关键帧粘贴到当前播放头位置，保持相对时间偏移（⌘V / Ctrl+V），粘贴的帧默认线性插值" data-page-node-id="CJ3jvzPwwlESWjGMB6vorw">📋 粘贴关键帧</button>
+      <select id="sel-interp" title="批量修改选中关键帧的插值类型（先点击或框选关键帧）" data-page-node-id="ca5d27wNzDCF7udW6xDxk0">
+        <option value="" selected data-page-node-id="cEXRANwHXo8wPwEjxQqqXG">∿ 批量插值…</option>
+        <option value="smooth" data-page-node-id="fx0YhhgQwH9BlwP8EKOuCD">→ 平滑（贝塞尔）</option>
+        <option value="linear" data-page-node-id="MAVMnH8pVVWzUjnOKREVeT">→ 线性</option>
+        <option value="step" data-page-node-id="vkyIEN0fQEqBVDp4xBQ7Zs">→ 阶梯（保持）</option>
       </select>
-      <button id="btn-clear-all" class="tbtn" title="一键删除所有轨道的全部关键帧（可用 ⌘Z 撤回）">🗑 清空所有关键帧</button>
-      <button id="btn-undo" class="tbtn" disabled title="撤回上一步操作（⌘Z / Ctrl+Z）">↩ 撤回</button>
-      <button id="btn-redo" class="tbtn" disabled title="重做（⌘⇧Z / Ctrl+Shift+Z / Ctrl+Y）">↪ 重做</button>
+      <button id="btn-clear-all" class="tbtn" title="一键删除所有轨道的全部关键帧（可用 ⌘Z 撤回）" data-page-node-id="UFYkvjLGyAMRIMJEzIuqZx">🗑 清空所有关键帧</button>
+      <button id="btn-undo" class="tbtn" disabled title="撤回上一步操作（⌘Z / Ctrl+Z）" data-page-node-id="iJXAARYPQLPuucOwB06xQA">↩ 撤回</button>
+      <button id="btn-redo" class="tbtn" disabled title="重做（⌘⇧Z / Ctrl+Shift+Z / Ctrl+Y）" data-page-node-id="COUpVmokEKHpfRsRoja2Jj">↪ 重做</button>
     </div>
-    <div id="tl-body">
-      <div id="tl-content">
-        <div id="playhead"></div>
-        <div id="marquee"></div>
+    <div id="tl-body" data-page-node-id="YWz4HsuZFFQhm8zOB2FntA">
+      <div id="tl-content" data-page-node-id="o8bLZMC6t33urqhIBcRbXM">
+        <div id="playhead" data-page-node-id="f5nonekGHTnzz1L8BFkcLr"></div>
+        <div id="marquee" data-page-node-id="JKLORTYr6RvGSUQq4X7aGg"></div>
       </div>
     </div>
   </div>
 </div>
 
-<div id="kf-editor">
-  <h4>关键帧编辑</h4>
-  <div class="erow"><span>轨道</span><input id="kf-track" disabled/></div>
-  <div class="erow"><span>时间 (s)</span><input id="kf-time" type="number" step="0.01" min="0"/></div>
-  <div class="erow"><span>数值</span><input id="kf-value" type="number" step="0.01"/></div>
-  <div class="erow"><span>插值</span>
-    <select id="kf-interp">
-      <option value="smooth">平滑（自动贝塞尔）</option>
-      <option value="linear">线性</option>
-      <option value="step">阶梯（保持）</option>
+<div id="kf-editor" data-page-node-id="DHEXiaYjnUSixkMq6pNRmp">
+  <h4 data-page-node-id="Dv2OD7ujiS6aO0aHwZW1TD">关键帧编辑</h4>
+  <div class="erow" data-page-node-id="JefOb0XD7cLM0wbUTXZpJn"><span data-page-node-id="yON1GqDXcD2oYo6AABeVYX">轨道</span><input id="kf-track" disabled data-page-node-id="jE8ECz9MaSehELFIyl6tn9"/></div>
+  <div class="erow" data-page-node-id="Kapo7fQqhC5X7e84zc973P"><span data-page-node-id="Ur99V5TMyvl5isvV7iHExg">时间 (s)</span><input id="kf-time" type="number" step="0.01" min="0" data-page-node-id="BGZPCFJLrD05GC6ecjurgn"/></div>
+  <div class="erow" data-page-node-id="pcBNGyb3OQMLy8k27UhFdj"><span data-page-node-id="OTTMv8qrRxl0aSYdNdvy4i">数值</span><input id="kf-value" type="number" step="0.01" data-page-node-id="TYS5NASFQzwBoWW5D1tRpq"/></div>
+  <div class="erow" data-page-node-id="uKqwpFLbjPZE8C43MlIrxn"><span data-page-node-id="FwT2bkC8EppDffHaG0rGwp">插值</span>
+    <select id="kf-interp" data-page-node-id="mm3FIo12JQ6agG1FOdoV6L">
+      <option value="smooth" data-page-node-id="yxx8q9SL6pP2w7IVhb0ipM">平滑（自动贝塞尔）</option>
+      <option value="linear" data-page-node-id="LouTdR3MqS0hRmWiSg0XfD">线性</option>
+      <option value="step" data-page-node-id="ez2CCDDJeyEUMZjQPdEYB9">阶梯（保持）</option>
     </select>
   </div>
-  <div class="ebtns">
-    <button id="kf-delete" class="del">删除</button>
-    <button id="kf-close">完成</button>
+  <div class="ebtns" data-page-node-id="qjJiuYYn3rC5NAqwPauStE">
+    <button id="kf-delete" class="del" data-page-node-id="DStrK0NopxLggkKIyigKqM">删除</button>
+    <button id="kf-close" data-page-node-id="VGMHa8SgDupvjsvgAHLjkz">完成</button>
   </div>
 </div>
 
-<div id="export-modal">
-  <div class="card">
-    <h2>导出动画</h2>
-    <div class="frow"><span>分辨率</span>
-      <select id="exp-res">
-        <option value="1280x720">1280 × 720（720p）</option>
-        <option value="1920x1080" selected>1920 × 1080（1080p）</option>
-        <option value="3840x2160">3840 × 2160（4K）</option>
-        <option value="custom">自定义…</option>
+<div id="export-modal" data-page-node-id="Qz6Wmtko3qiIo5weYqReH8">
+  <div class="card" data-page-node-id="NQEyS3pe3G4Nd1YPI21ART">
+    <h2 data-page-node-id="ry0eHBTybPi1WKOCkiXlc8">导出动画</h2>
+    <div class="frow" data-page-node-id="MqzghV8r1sA9MAufIs5P8h"><span data-page-node-id="L2uy0W7KiSAW4iCmcebNJy">分辨率</span>
+      <select id="exp-res" data-page-node-id="35g0geejgBEGD6gdblDD5i">
+        <option value="1280x720" data-page-node-id="ZPXoyLsx1T8C189c8GEV9P">1280 × 720（720p）</option>
+        <option value="1920x1080" selected data-page-node-id="l0zDaNK48p3rRrfwzXeZgj">1920 × 1080（1080p）</option>
+        <option value="3840x2160" data-page-node-id="CXkIhTjf8JY8cpH2h4AIBt">3840 × 2160（4K）</option>
+        <option value="custom" data-page-node-id="IpiXXNdYE1BvEKQjizw16Q">自定义…</option>
       </select>
     </div>
-    <div class="frow" id="exp-custom-row" style="display:none">
-      <span>自定义</span>
-      <input id="exp-w" type="number" value="1920" min="16" step="2" style="flex:1"/> ×
-      <input id="exp-h" type="number" value="1080" min="16" step="2" style="flex:1"/>
+    <div class="frow" id="exp-custom-row" style="display:none" data-page-node-id="0fapa9ggadHbOlozm4LGQh">
+      <span data-page-node-id="AVCvC8sYRBGYrKWkgWBq5a">自定义</span>
+      <input id="exp-w" type="number" value="1920" min="16" step="2" style="flex:1" data-page-node-id="o57aK7jWR7VqpoBVVA4p66"/> ×
+      <input id="exp-h" type="number" value="1080" min="16" step="2" style="flex:1" data-page-node-id="D148ZkWAPm1PDe6GAywfct"/>
     </div>
-    <div class="frow"><span>帧率</span>
-      <select id="exp-fps">
-        <option value="24">24 fps（电影）</option>
-        <option value="30" selected>30 fps</option>
-        <option value="60">60 fps（流畅）</option>
+    <div class="frow" data-page-node-id="tIn74IZuFbt0qohBvjFPfz"><span data-page-node-id="D0D10BQSWCqwT68uIxaSHQ">帧率</span>
+      <select id="exp-fps" data-page-node-id="2RLdyyIJFz1VqBBcVqm2Bi">
+        <option value="24" data-page-node-id="hWjTHlxWjKoNa0PE5QEmAA">24 fps（电影）</option>
+        <option value="30" selected data-page-node-id="d1KBiNtUjZwdppzwiDyycD">30 fps</option>
+        <option value="60" data-page-node-id="6qTpCGa0ZSiHsHmXdtRwB4">60 fps（流畅）</option>
       </select>
     </div>
-    <div class="frow"><span>文件名</span>
-      <input id="exp-name" type="text" style="flex:1" placeholder="留空自动命名（口播音频名 / 模拟器名+日期）"/>
+    <div class="frow" data-page-node-id="EtZk4Lx9QdQFWovrPRPCAd"><span data-page-node-id="LSzNbToMx2CErfBd1Ckk00">文件名</span>
+      <input id="exp-name" type="text" style="flex:1" placeholder="留空自动命名（口播音频名 / 模拟器名+日期）" data-page-node-id="HwAkRRyQvtISMAVXDX76xB"/>
     </div>
-    <div class="frow"><span>格式</span>
-      <select id="exp-format">
-        <option value="mp4" selected>MP4 视频（H.264，通用可预览）</option>
-        <option value="mov">MOV 视频（H.264，兼容容器）</option>
-        <option value="png">PNG 图像序列（ZIP 打包，可选透明背景）</option>
+    <div class="frow" data-page-node-id="OPYLMir495FTeXB9EtAoDD"><span data-page-node-id="IG1bN5KmHxVu81TDRkCp25">格式</span>
+      <select id="exp-format" data-page-node-id="EGxgmWZOwGtZYGZI89lQip">
+        <option value="mp4" selected data-page-node-id="R00wVwgCMgqEvg4AyAaKam">MP4 视频（H.264，通用可预览）</option>
+        <option value="mov" data-page-node-id="19PegDrDWl84bq7CC5v9gt">MOV 视频（H.264，兼容容器）</option>
+        <option value="png" data-page-node-id="3kL7Pu86J9XTscGqQg3mtd">PNG 图像序列（ZIP 打包，可选透明背景）</option>
       </select>
     </div>
-    <div class="frow" id="exp-alpha-row" style="display:none"><span>透明背景</span>
-      <label style="flex:1;display:flex;align-items:center;gap:8px;color:var(--text);cursor:pointer;font-size:12.5px">
-        <input type="checkbox" id="exp-alpha"/> PNG 背景透明（alpha 通道，便于后期合成/抠像）
+    <div class="frow" id="exp-alpha-row" style="display:none" data-page-node-id="2Kq9U5FCDzBVH8oGVqH0PC"><span data-page-node-id="f54NNAuHcycc0JXcWtTR1D">透明背景</span>
+      <label style="flex:1;display:flex;align-items:center;gap:8px;color:var(--text);cursor:pointer;font-size:12.5px" data-page-node-id="aDTWTHdFGfOADo35kNWSYL">
+        <input type="checkbox" id="exp-alpha" data-page-node-id="uRPLy5owEit5b0wBoGI1I3"/> PNG 背景透明（alpha 通道，便于后期合成/抠像）
       </label>
     </div>
-    <div class="frow" style="color:var(--dim);font-size:11.5px;line-height:1.5">
-      <span></span>
-      <span>MP4/MOV 无声导出采用 WebCodecs 精确编码，帧率严格等于所选值；混入口播时为实时录制，帧率由浏览器决定。MOV 为 H.264 兼容容器（多数播放器/剪辑软件可打开）。</span>
+    <div class="frow" style="color:var(--dim);font-size:11.5px;line-height:1.5" data-page-node-id="6iifcoS6s4F5fSOSVCpafP">
+      <span data-page-node-id="Cq7GjCgkasJxzDiDkl3KFG"></span>
+      <span data-page-node-id="ZoxN06quw5kq6JLw1EFDie">MP4/MOV 无声导出采用 WebCodecs 精确编码，帧率严格等于所选值；混入口播时为实时录制，帧率由浏览器决定。MOV 为 H.264 兼容容器（多数播放器/剪辑软件可打开）。</span>
     </div>
-    <div class="frow" id="exp-mix-row" style="display:none"><span>混入口播</span>
-      <label style="flex:1;display:flex;align-items:center;gap:8px;color:var(--text);cursor:pointer;font-size:12.5px">
-        <input type="checkbox" id="exp-mix" checked/> 将导入的口播音频合成进视频（实时录制模式）
+    <div class="frow" id="exp-mix-row" style="display:none" data-page-node-id="su1CcLrUag7ECHWpwVmzl0"><span data-page-node-id="9MGLnfqb0sGzSYAj3fmBRC">混入口播</span>
+      <label style="flex:1;display:flex;align-items:center;gap:8px;color:var(--text);cursor:pointer;font-size:12.5px" data-page-node-id="xMWrm2IwERaEj6CJVHfOr5">
+        <input type="checkbox" id="exp-mix" checked data-page-node-id="ZqPNaeXhxf5EObL7DowtxZ"/> 将导入的口播音频合成进视频（实时录制模式）
       </label>
     </div>
-    <div class="frow"><span>范围</span><input id="exp-range" disabled/></div>
-    <div id="export-progress"><i></i></div>
-    <div id="export-status"></div>
-    <div class="ebtns">
-      <button id="exp-start" class="tbtn primary">开始导出</button>
-      <button id="exp-cancel" class="tbtn">取消</button>
+    <div class="frow" data-page-node-id="FauBRi6K0mVUykvJK4opcs"><span data-page-node-id="uHOLtHb1tgLq2ZblVNS2eF">范围</span><input id="exp-range" disabled data-page-node-id="vPLInlrWeaEl4VC4nFflxp"/></div>
+    <div id="export-progress" data-page-node-id="xbWYlGFZlKEKsDFloI7v2R"><i data-page-node-id="oRMxmfkypBqmO5xCGLPret"></i></div>
+    <div id="export-status" data-page-node-id="Vx3C0RKRT5mQERDQys98lQ"></div>
+    <div class="ebtns" data-page-node-id="mI3tFJUeeOvtvRyNok9loH">
+      <button id="exp-start" class="tbtn primary" data-page-node-id="JRhMHakwhUyIqAwtIkO59V">开始导出</button>
+      <button id="exp-cancel" class="tbtn" data-page-node-id="T5qFN0MFEtHQx4WTxC1Isa">取消</button>
     </div>
   </div>
 </div>
 
 <!-- 配色面板：线条颜色 + 平面颜色/透明度 -->
-<div id="color-overlay">
-  <div class="color-card">
-    <div class="color-head">
-      <h3>🎨 配色调整</h3>
-      <div style="display:flex;gap:8px">
-        <button id="color-reset" style="background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:5px;cursor:pointer;font-size:12px;padding:0 11px;height:26px;" title="恢复默认配色（可 ⌘Z 撤回）">↺ 重置配色</button>
-        <button id="color-close">✕ 关闭（Esc）</button>
+<div id="color-overlay" data-page-node-id="MKr0xZ2eaWxDSdKCBPjjZ9">
+  <div class="color-card" data-page-node-id="NxEgbcEsSgqSRG8gMyVttC">
+    <div class="color-head" data-page-node-id="vQcn0llQkdVAbSbBj21Dbs">
+      <h3 data-page-node-id="jD3pks3tNmJERARpwkIbBH">🎨 配色调整</h3>
+      <div style="display:flex;gap:8px" data-page-node-id="fxxhEye4pRkDO5ByRVu4XR">
+        <button id="color-reset" style="background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:5px;cursor:pointer;font-size:12px;padding:0 11px;height:26px;" title="恢复默认配色（可 ⌘Z 撤回）" data-page-node-id="TcuEmrwV0OXlMIB9QIFbgV">↺ 重置配色</button>
+        <button id="color-close" data-page-node-id="hI2ammZvJjKvg4GorAfoXc">✕ 关闭（Esc）</button>
       </div>
     </div>
-    <div class="color-body">
-      <div class="color-preview">
-        <canvas id="color-preview-canvas" width="480" height="270"></canvas>
-        <div class="cp-note">▶ 实时预览 · 当前播放头画面（配色改动即时生效）</div>
+    <div class="color-body" data-page-node-id="wtoFLzFQPGtMmrDkVzd3bE">
+      <div class="color-preview" data-page-node-id="uUfYdzjmyGnfso5H3tUHmJ">
+        <canvas id="color-preview-canvas" width="480" height="270" data-page-node-id="0ItOCpH9VURhkPMRL245dl"></canvas>
+        <div class="cp-note" data-page-node-id="gBItfF2Bcuav5FdS2PDlhz">▶ 实时预览 · 当前播放头画面（配色改动即时生效）</div>
       </div>
-      <div class="csec">
-        <h4>线条</h4>
-        <div class="crow"><span>流线笼</span><input type="color" data-g="lines" data-s="cage" data-k="color" value="#155e75"/><input type="range" data-g="lines" data-s="cage" data-k="opacity" min="0" max="1" step="0.01" value="0.45"/><output>0.45</output><span class="swatch"><i></i></span></div>
-        <div class="crow"><span>截面线</span><input type="color" data-g="lines" data-s="section" data-k="color" value="#ecfeff"/><input type="range" data-g="lines" data-s="section" data-k="opacity" min="0" max="1" step="0.01" value="1"/><output>1.00</output><span class="swatch"><i></i></span></div>
-        <div class="crow"><span>前端线</span><input type="color" data-g="lines" data-s="front" data-k="color" value="#fff3d0"/><input type="range" data-g="lines" data-s="front" data-k="opacity" min="0" max="1" step="0.01" value="1"/><output>1.00</output><span class="swatch"><i></i></span></div>
-        <div class="crow"><span>参考网格</span><input type="color" data-g="lines" data-s="grid" data-k="color" value="#1d2f52"/><input type="range" data-g="lines" data-s="grid" data-k="opacity" min="0" max="1" step="0.01" value="0.8"/><output>0.80</output><span class="swatch"><i></i></span></div>
+      <div class="csec" data-page-node-id="U0WtVOqAELZK0JXIpDsT3O">
+        <h4 data-page-node-id="b8zERGNHF5Mf3BnPVPWgrk">线条</h4>
+        <div class="crow" data-page-node-id="lDhRTkQTwnlNZ5PRb0WKTY"><span data-page-node-id="H4vDfj0GL52a0p8Y7faans">流线笼</span><input type="color" data-g="lines" data-s="cage" data-k="color" value="#155e75" data-page-node-id="7GsQSHClMzm4oIm86G8Hg8"/><input type="range" data-g="lines" data-s="cage" data-k="opacity" min="0" max="1" step="0.01" value="0.45" data-page-node-id="c7BlgHCcFqEOvwSDmh9gG5"/><output data-page-node-id="g11WwHsjVM4TZheNc0S1yl">0.45</output><span class="swatch" data-page-node-id="kOaeF7ZjiKl4Rq5KJb6h3P"><i data-page-node-id="xc344vMWDj6nnBGzAp85VU"></i></span></div>
+        <div class="crow" data-page-node-id="tTgqnLb874aUVWeeyQPcfQ"><span data-page-node-id="4iJ1u8DUVzqSCyXnuFFgFo">截面线</span><input type="color" data-g="lines" data-s="section" data-k="color" value="#ecfeff" data-page-node-id="R9zZx8zpQ1AlkT9wrA0RXE"/><input type="range" data-g="lines" data-s="section" data-k="opacity" min="0" max="1" step="0.01" value="1" data-page-node-id="zGzNUzIECVGOW1NtKDCj82"/><output data-page-node-id="CGQFnYoYymGZQGTsT5qkgm">1.00</output><span class="swatch" data-page-node-id="qd5YyH2TG6pRtauuA0umci"><i data-page-node-id="iqf2OtqQ24Jwa9u1Y4lOVI"></i></span></div>
+        <div class="crow" data-page-node-id="IkhNmnP2xqOtYRHM2yqBS5"><span data-page-node-id="7G22GwgAWMCADHrFBxtJdV">前端线</span><input type="color" data-g="lines" data-s="front" data-k="color" value="#fff3d0" data-page-node-id="YhKccC29rRa24olyyfGB0T"/><input type="range" data-g="lines" data-s="front" data-k="opacity" min="0" max="1" step="0.01" value="1" data-page-node-id="OaigGeP0nnQtVE1WfmO5Cu"/><output data-page-node-id="U9B5gKXpwUjG0Xr45YMlYP">1.00</output><span class="swatch" data-page-node-id="PuU4DYCorC0W5tg4lP0XYx"><i data-page-node-id="4Wy2ouKQgGwkO40ZDX48MX"></i></span></div>
+        <div class="crow" data-page-node-id="cfdHza9hXlchoHttGNEOBe"><span data-page-node-id="wzfFq8Z4PYWmIfvESvapGv">参考网格</span><input type="color" data-g="lines" data-s="grid" data-k="color" value="#1d2f52" data-page-node-id="5ARMaV9LsvOAMRlbqibJ6u"/><input type="range" data-g="lines" data-s="grid" data-k="opacity" min="0" max="1" step="0.01" value="0.8" data-page-node-id="YtvzSgHqkr3i3vWeR40CEf"/><output data-page-node-id="29HzPAjDcGype7vERRiAxG">0.80</output><span class="swatch" data-page-node-id="sHMkshw36vRajqYYBWX2QQ"><i data-page-node-id="cpryIgAuWNyFul9QzfbNUd"></i></span></div>
       </div>
-      <div class="csec">
-        <h4>平面</h4>
-        <div class="crow"><span>液柱表面</span><input type="color" data-g="planes" data-s="jet" data-k="color" value="#6ec6e8"/><input type="range" data-g="planes" data-s="jet" data-k="opacity" min="0" max="1" step="0.01" value="0.92"/><output>0.92</output><span class="swatch"><i></i></span></div>
-        <div class="crow"><span>截面填充</span><input type="color" data-g="planes" data-s="sectionFill" data-k="color" value="#4df3ff"/><input type="range" data-g="planes" data-s="sectionFill" data-k="opacity" min="0" max="1" step="0.01" value="1"/><output>1.00</output><span class="swatch"><i></i></span></div>
-        <div class="crow"><span>截面光晕</span><input type="color" data-g="planes" data-s="sectionHalo" data-k="color" value="#22d3ee"/><input type="range" data-g="planes" data-s="sectionHalo" data-k="opacity" min="0" max="1" step="0.01" value="0.38"/><output>0.38</output><span class="swatch"><i></i></span></div>
-        <div class="crow"><span>前端填充</span><input type="color" data-g="planes" data-s="frontFill" data-k="color" value="#ffb020"/><input type="range" data-g="planes" data-s="frontFill" data-k="opacity" min="0" max="1" step="0.01" value="0.95"/><output>0.95</output><span class="swatch"><i></i></span></div>
-        <div class="crow"><span>扫描框</span><input type="color" data-g="planes" data-s="scan" data-k="color" value="#f1f5f9"/><input type="range" data-g="planes" data-s="scan" data-k="opacity" min="0" max="1" step="0.01" value="0.9"/><output>0.90</output><span class="swatch"><i></i></span></div>
-        <div class="crow"><span class="cnote">液柱透明度作用于玻璃模式；实心/线框模式为不透明。热力图模式颜色不可改</span></div>
+      <div class="csec" data-page-node-id="G9YbeBeHlowyH83OM7Dn48">
+        <h4 data-page-node-id="FLPWwjvdRfYht3ibb7M4RL">平面</h4>
+        <div class="crow" data-page-node-id="F9OkpSufmw0cEVJLUKqp7x"><span data-page-node-id="jXPtP9Tr4wqNdfUTELTChD">液柱表面</span><input type="color" data-g="planes" data-s="jet" data-k="color" value="#6ec6e8" data-page-node-id="VeS219LEGgQIKD0csDZiMl"/><input type="range" data-g="planes" data-s="jet" data-k="opacity" min="0" max="1" step="0.01" value="0.92" data-page-node-id="XMcMtFNQSS1dJZztZrK1Ay"/><output data-page-node-id="AX0C9p5lXQSqiG2y6acGVl">0.92</output><span class="swatch" data-page-node-id="3uVGAVL6wKqGsBRTHbNqxn"><i data-page-node-id="YQsKUQPfCi2J8HWKVzOWT5"></i></span></div>
+        <div class="crow" data-page-node-id="Ez22Guj3YtwcsYX5ukH4yC"><span data-page-node-id="UExbhMqEgwEusW3h0KKsX2">截面填充</span><input type="color" data-g="planes" data-s="sectionFill" data-k="color" value="#4df3ff" data-page-node-id="1X6XicACTxwGdU43M5mHdA"/><input type="range" data-g="planes" data-s="sectionFill" data-k="opacity" min="0" max="1" step="0.01" value="1" data-page-node-id="oiLPyIgX8Wx5nrub5uoFEM"/><output data-page-node-id="RRTee6USt4OuG9QU7I7Mfd">1.00</output><span class="swatch" data-page-node-id="zezjrFrLBeEdycoipzMDpn"><i data-page-node-id="ZjIrFZJbWDar6qnpxhbjQk"></i></span></div>
+        <div class="crow" data-page-node-id="rsYGvCYodf428j1ZeSF7Pm"><span data-page-node-id="AEV0Qxj0cY51FDPDWDFptp">截面光晕</span><input type="color" data-g="planes" data-s="sectionHalo" data-k="color" value="#22d3ee" data-page-node-id="0Iy6e4PAfhNioohKxyzmhp"/><input type="range" data-g="planes" data-s="sectionHalo" data-k="opacity" min="0" max="1" step="0.01" value="0.38" data-page-node-id="vO2zQlFJX89wjA5agM478B"/><output data-page-node-id="U8AGhB6U4hHS2F7hEwL8vp">0.38</output><span class="swatch" data-page-node-id="CDW3ALbSVi9mnHssposBu9"><i data-page-node-id="yayDEHALFSOHAxoOtxkMnx"></i></span></div>
+        <div class="crow" data-page-node-id="HACtzKHOUTOvDuACbSKoGB"><span data-page-node-id="3WkH2E5CwncDfvVwE8u72H">前端填充</span><input type="color" data-g="planes" data-s="frontFill" data-k="color" value="#ffb020" data-page-node-id="ZQqzQSWTZMHrqYyjjFGsOb"/><input type="range" data-g="planes" data-s="frontFill" data-k="opacity" min="0" max="1" step="0.01" value="0.95" data-page-node-id="3hVd6B8UupCa3TP7hGEO1u"/><output data-page-node-id="9WBeB4Jgs49HFbDnlbpnSa">0.95</output><span class="swatch" data-page-node-id="R445giaZ8bLHCwOhW35SQO"><i data-page-node-id="gSg0ivfnFFqsGuUU0bXaSh"></i></span></div>
+        <div class="crow" data-page-node-id="bFgKXrVkGoBpRGCWwIqfaS"><span data-page-node-id="y31sypHAxmXMxakKxUQ73r">扫描框</span><input type="color" data-g="planes" data-s="scan" data-k="color" value="#f1f5f9" data-page-node-id="owDZ5oUGEoAAbTT9BI9MbE"/><input type="range" data-g="planes" data-s="scan" data-k="opacity" min="0" max="1" step="0.01" value="0.9" data-page-node-id="yWqfopruIGlnxSsbxykdPL"/><output data-page-node-id="fJPcdKJsYr7Y2zBCSgNA4O">0.90</output><span class="swatch" data-page-node-id="Z8cBCH2jUD7ZkcG65CgcwK"><i data-page-node-id="y2yOGUrkc4Bv4GtqByC2HG"></i></span></div>
+        <div class="crow" data-page-node-id="swHsYW8E29npIiD6bQ1D0y"><span class="cnote" data-page-node-id="eNSM0ANkXa6VNOmXUft6P8">液柱透明度作用于玻璃模式；实心/线框模式为不透明。热力图模式颜色不可改</span></div>
       </div>
     </div>
   </div>
 </div>
 
 <!-- 帮助看板：全部功能与快捷键总览 -->
-<div id="help-overlay">
-  <div class="help-card">
-    <div class="help-head">
-      <h3>📖 帮助看板 · 功能总览</h3>
-      <button id="help-close">✕ 关闭（Esc）</button>
+<div id="help-overlay" data-page-node-id="Z2aGKTdCwl0bx0ZHpEIDtn">
+  <div class="help-card" data-page-node-id="haetgxJPkWOGLys9dKAH2x">
+    <div class="help-head" data-page-node-id="l2HN951HbXfDdT670apD2G">
+      <h3 data-page-node-id="XbSTclezVvGnbvSqksQxoG">📖 帮助看板 · 功能总览</h3>
+      <button id="help-close" data-page-node-id="LDAyFjx3aHiJBoDDuUCtDI">✕ 关闭（Esc）</button>
     </div>
-    <div class="help-body">
-      <div class="hsec"><h4>🎬 播放与时间轴</h4><ul>
-        <li><b>播放 / 暂停</b>：<kbd>空格</kbd>；工具栏 ⏮ ◀ ▶ ▶ ⏭ 回到开头 / 逐帧 / 播放 / 结尾；可勾选循环</li>
-        <li><b>逐帧步进</b>：<kbd>←</kbd> / <kbd>→</kbd>（自动吸附帧边界）</li>
-        <li><b>跳转播放头</b>：点击或拖动标尺 / 轨道空白处（scrub 跟随），也可拖动波形</li>
-        <li><b>🧲 帧吸附</b>：播放头、关键帧拖动、粘贴全部自动对齐到帧边界（帧率见状态栏）</li>
-        <li><b>🔍 缩放时间轴</b>：按住 <kbd>Alt</kbd> 滚动滚轮（以鼠标位置为中心），或拖动「缩放」滑杆</li>
-        <li><b>时长</b>：工具栏直接修改总时长（秒）</li>
+    <div class="help-body" data-page-node-id="DE4WGcIghqmacAHA7bHHFt">
+      <div class="hsec" data-page-node-id="Z1P8IMB2ZeOC3Oziyoj6qU"><h4 data-page-node-id="HOsbpDAxeW554s5NPko37h">🎬 播放与时间轴</h4><ul data-page-node-id="mYMSByJz94ZVcCHoghWjfO">
+        <li data-page-node-id="r9ATcTRZ92anMQxBRGFZ6T"><b data-page-node-id="bfCtkMxoDPCB5m6RGqbSRh">播放 / 暂停</b>：<kbd data-page-node-id="OTwNxJ0xPCvm9Gy0eZhqc6">空格</kbd>；工具栏 ⏮ ◀ ▶ ▶ ⏭ 回到开头 / 逐帧 / 播放 / 结尾；可勾选循环</li>
+        <li data-page-node-id="Y05OsWIz1OCqE89KJa0MYx"><b data-page-node-id="UaLqXzQN6PDpyHJRJKThiS">逐帧步进</b>：<kbd data-page-node-id="dG8BR72pkUFMebuZMEw22i">←</kbd> / <kbd data-page-node-id="hRbb7MxWHyB1wjdb1PU7iI">→</kbd>（自动吸附帧边界）</li>
+        <li data-page-node-id="FdN6KEvErq1ToRroIhWh55"><b data-page-node-id="N1iwGDGafYkhTE3zURuzJF">跳转播放头</b>：点击或拖动标尺 / 轨道空白处（scrub 跟随），也可拖动波形</li>
+        <li data-page-node-id="wn0rUFJ7HuTqdM3PAV2YBP"><b data-page-node-id="xc0SdVYFN6MAEDMYuDYkAz">🧲 帧吸附</b>：播放头、关键帧拖动、粘贴全部自动对齐到帧边界（帧率见状态栏）</li>
+        <li data-page-node-id="pBdTO6gXN0JgqHfyPVV97I"><b data-page-node-id="LYbsgrqXiHDmSwFZU9Dy3i">🔍 缩放时间轴</b>：按住 <kbd data-page-node-id="B6iW5B7xoCN2kcLYwwIQ3w">Alt</kbd> 滚动滚轮（以鼠标位置为中心），或拖动「缩放」滑杆</li>
+        <li data-page-node-id="FLokg9qlxYMaleToQiUyLz"><b data-page-node-id="DSKrJAoj1sQZkeSCFJKErQ">时长</b>：工具栏直接修改总时长（秒）</li>
       </ul></div>
-      <div class="hsec"><h4>◆ 关键帧编辑</h4><ul>
-        <li><b>添加</b>：「◇ 全部打关键帧」为所有轨道在播放头处打帧；<em>双击轨道空白处</em>为该轨道插帧</li>
-        <li><b>自动打帧</b>：直接拖动左侧参数面板数值，当前时间自动记录关键帧</li>
-        <li><b>参数范围手柄</b>：<em>新增</em>——每个参数的滑杆是常用调节范围（手柄），数值框或按住拖拽可<b>继续超出增减</b>（安全边界内）；超出后滑杆贴边并变红高亮</li>
-        <li><b>选中</b>：单击菱形单选；<b>⛶ 框选</b>——在轨道空白处按住拖出矩形框选多帧（<kbd>Shift</kbd> 追加选择）</li>
-        <li><b>移动</b>：拖动菱形改时间；框选后拖动任一帧<em>整组同步移动</em></li>
-        <li><b>🧲 关键帧吸附</b>：工具栏「吸附」开关（默认开启）——拖动关键帧时自动吸附到<b>其他轨道</b>上相近的关键帧，让不同轨道的帧对齐到同一时间列（阈值随时间轴缩放自适应，吸附命中时目标帧金色高亮）</li>
-        <li><b>编辑数值</b>：双击菱形打开编辑器（时间 / 数值 / 插值）</li>
-        <li><b>复制 / 剪切 / 粘贴</b>：<kbd>⌘C</kbd>/<kbd>⌃C</kbd>、<kbd>⌘X</kbd>/<kbd>⌃X</kbd>、<kbd>⌘V</kbd>/<kbd>⌃V</kbd>（或 📋 按钮）——粘贴到播放头位置，保持各帧相对时间偏移，<em>粘贴的帧默认线性插值</em></li>
-        <li><b>∿ 批量插值</b>：<em>新增</em>——选中（或框选）关键帧后，用工具栏「批量插值」下拉一键改为 平滑 / 线性 / 阶梯，一次可撤回</li>
-        <li><b>删除</b>：<kbd>Delete</kbd> / <kbd>Backspace</kbd> 批量删除选中帧；「🗑 清空所有关键帧」一键清空</li>
-        <li><b>取消选择</b>：<kbd>Esc</kbd>（再按关闭编辑器 / 帮助看板）</li>
+      <div class="hsec" data-page-node-id="CcHGprGB7TrPT3CqbFThul"><h4 data-page-node-id="sa3NQ1pcFFyNrSJ3AQ5ND1">◆ 关键帧编辑</h4><ul data-page-node-id="eahsaWsR8hp2DSVHWgCyWV">
+        <li data-page-node-id="TcsOyMKEs7R3o3L7nStpnE"><b data-page-node-id="Q2yjTChAdZtkTbB0WslCJ8">添加</b>：「◇ 全部打关键帧」为所有轨道在播放头处打帧；<em data-page-node-id="FLiQ7ut3DwQvBKpQVrBNTQ">双击轨道空白处</em>为该轨道插帧</li>
+        <li data-page-node-id="Dldpf7GFSqm6R10OpFhK0Y"><b data-page-node-id="p3xHAg6wBxzVkBCLuAtaRU">自动打帧</b>：直接拖动左侧参数面板滑杆或数值框，当前时间自动记录关键帧；按住 <kbd data-page-node-id="SHFTFINE1">Shift</kbd> 拖动滑杆进入<em data-page-node-id="SHFTFINE2">精细调节</em>（1/10 步进，滑杆青蓝高亮提示），可逐毫级微调参数</li>
+        <li data-page-node-id="6JPdr0DE7nF13RGEWvKIBQ"><b data-page-node-id="Da3UGqd9EcjZKQEApM1RUR">参数范围手柄</b>：<em data-page-node-id="yjriDjhmoTAMB8jcViO1Ad">新增</em>——每个参数的滑杆是常用调节范围（手柄），数值框或按住拖拽可<b data-page-node-id="MH4IqrmrwgYfGxe1YbRuhH">继续超出增减</b>（安全边界内）；超出后滑杆贴边并变红高亮</li>
+        <li data-page-node-id="jlLFHIQ7eHWlBIZ8pb82kY"><b data-page-node-id="1TCQe9sOAgNsQMem93SOn1">选中</b>：单击菱形单选；<b data-page-node-id="vlBmhwMRM8qwCJI02jNni3">⛶ 框选</b>——在轨道空白处按住拖出矩形框选多帧（<kbd data-page-node-id="t7LTXD0uOEct6pyzfgB4pj">Shift</kbd> 追加选择）</li>
+        <li data-page-node-id="bHjdnWDb2awCVBFuBaXaBc"><b data-page-node-id="c1xgcEay95w5EUA1TlkNQy">移动</b>：拖动菱形改时间；框选后拖动任一帧<em data-page-node-id="75TOYKe3A22Rkoofj14wA9">整组同步移动</em></li>
+        <li data-page-node-id="PRLPFj0DW2JHEJNRHxnIn2"><b data-page-node-id="tonesmrnRvHl1p5w3MvysG">🧲 关键帧吸附</b>：工具栏「吸附」开关（默认开启）——拖动关键帧时自动吸附到<b data-page-node-id="edU560RKqoWP6CEuS6tr8E">其他轨道</b>上相近的关键帧，让不同轨道的帧对齐到同一时间列（阈值随时间轴缩放自适应，吸附命中时目标帧金色高亮）</li>
+        <li data-page-node-id="cZUG1aEIzwaELg6kfvPJ7F"><b data-page-node-id="kLzAd1XOky6Vd6MEw1Rwdu">编辑数值</b>：双击菱形打开编辑器（时间 / 数值 / 插值）</li>
+        <li data-page-node-id="118zwDY5NHQgdf3qLVdXU5"><b data-page-node-id="ioZ6TU7VS9yHGgCIkrSLQ5">复制 / 剪切 / 粘贴</b>：<kbd data-page-node-id="f5aKJeSQVEs8kjQRwslPwM">⌘C</kbd>/<kbd data-page-node-id="rj71dcSIm9IZHLWmqEIk10">⌃C</kbd>、<kbd data-page-node-id="8uFRicUPFSqlDZi348EjS7">⌘X</kbd>/<kbd data-page-node-id="bbkRbIWeTZWSK3NKVzdYZC">⌃X</kbd>、<kbd data-page-node-id="x7AppjlBXbPnA2RNjpgFmF">⌘V</kbd>/<kbd data-page-node-id="sHTH1HtFbbGnb1q3e3KO6D">⌃V</kbd>（或 📋 按钮）——粘贴到播放头位置，保持各帧相对时间偏移，<em data-page-node-id="ezDvhAZU2wRHyysXZDMnoP">粘贴的帧默认线性插值</em></li>
+        <li data-page-node-id="1E60KhiU3AenItvwVA2YzM"><b data-page-node-id="8vD71yUppbGCjhZH4HNWwj">∿ 批量插值</b>：<em data-page-node-id="abp45LUKZD0M6BHDwLxtkR">新增</em>——选中（或框选）关键帧后，用工具栏「批量插值」下拉一键改为 平滑 / 线性 / 阶梯，一次可撤回</li>
+        <li data-page-node-id="h0dhauToaPYJEk3QI9wlX5"><b data-page-node-id="EE1HpaLjp5hqKE5NUojdnA">删除</b>：<kbd data-page-node-id="e8q7FBipLF8i6zTuM8OqFI">Delete</kbd> / <kbd data-page-node-id="FEqC788HqvdGzitVHROIyv">Backspace</kbd> 批量删除选中帧；「🗑 清空所有关键帧」一键清空</li>
+        <li data-page-node-id="TC8ajEPTQebcITF2A806CV"><b data-page-node-id="FLkZVHpXzKvZYABM4v9myK">取消选择</b>：<kbd data-page-node-id="7eP6mHyH3JhHIKANwDXJLN">Esc</kbd>（再按关闭编辑器 / 帮助看板）</li>
       </ul></div>
-      <div class="hsec"><h4>🎥 视角与画面</h4><ul>
-        <li><b>视角切换</b>：🎥 摄像机视角（按关键帧动画渲染）/ 🖐 自由视角（拖拽旋转 · 滚轮缩放 · 右键平移，不影响关键帧）</li>
-        <li><b>📌 同步视角</b>：自由视角摆好机位后一键写入当前时间的关键帧</li>
-        <li><b>📐 网格</b>：全局坐标轴参考网格显示开关</li>
-        <li><b>🔲 画幅框</b>：显示最终导出视频的画面范围（虚线安全框）</li>
-        <li><b>🎨 背景色</b>：<em>新增</em>——顶栏「背景」下拉一键切换 深空蓝 / 纯黑 / 纯白 / 纯绿（抠像）等纯色背景，或右侧色板自定义任意颜色；背景实时生效并随导出视频一并输出（纯色抠像建议关闭 📐 网格）</li>
-        <li><b>🎨 配色</b>：<em>新增</em>——顶栏「配色」打开面板：可单独更改 流线笼/截面线/前端线/参考网格 的颜色与透明度，以及 液柱表面/截面填充/前端填充/扫描框 等平面的颜色与透明度；随工程自动保存</li>
-        <li><b>🕳 孔板开关</b>：<em>新增</em>——顶栏「孔板」按钮可显示/隐藏水流开始的孔板平台（随工程保存）</li>
-        <li><b>面板高度</b>：拖动时间线面板上边缘调整布局</li>
+      <div class="hsec" data-page-node-id="gKL9LIvIlTlIhabBYDByAt"><h4 data-page-node-id="XZ3qAwgWCM6QNmyiq8BC72">🎥 视角与画面</h4><ul data-page-node-id="V7Ivk8whX8DUHRoseIPGQL">
+        <li data-page-node-id="nPGjr5BihdYjZY8wLVwUFa"><b data-page-node-id="NCm3HC9eqwDJWhMTnScQG6">视角切换</b>：🎥 摄像机视角（按关键帧动画渲染）/ 🖐 自由视角（拖拽旋转 · 滚轮缩放 · 右键平移，不影响关键帧）</li>
+        <li data-page-node-id="0GD1nrROURXd5dP0G4WzrD"><b data-page-node-id="NgSbc8CG9jm4u4O7V0yHai">📌 同步视角</b>：自由视角摆好机位后一键写入当前时间的关键帧</li>
+        <li data-page-node-id="9vg62aTRpTqDvx9qJQ4deP"><b data-page-node-id="kK86Z06pLLXDAFfFg1AXib">📐 网格</b>：全局坐标轴参考网格显示开关</li>
+        <li data-page-node-id="fYV7jNAMC5w23nmGAo1IRB"><b data-page-node-id="N1f9gKgS9GXtNYxcIBfa3O">🔲 画幅框</b>：显示最终导出视频的画面范围（虚线安全框）</li>
+        <li data-page-node-id="QtFVvV5AzPbEayBRPWpZT8"><b data-page-node-id="lblKPKBqJ9xu1N4FPZIYC4">🎨 背景色</b>：<em data-page-node-id="shQpHcls4VaJtwYHiTpIQN">新增</em>——顶栏「背景」下拉一键切换 深空蓝 / 纯黑 / 纯白 / 纯绿（抠像）等纯色背景，或右侧色板自定义任意颜色；背景实时生效并随导出视频一并输出（纯色抠像建议关闭 📐 网格）</li>
+        <li data-page-node-id="sH3mfdJSCE1zeESkfED1yS"><b data-page-node-id="xWmDW2GDVOeXPgQOWTe7Hg">🎨 配色</b>：<em data-page-node-id="MzJUWBKBXQhUS77HKg6sit">新增</em>——顶栏「配色」打开面板：可单独更改 流线笼/截面线/前端线/参考网格 的颜色与透明度，以及 液柱表面/截面填充/前端填充/扫描框 等平面的颜色与透明度；随工程自动保存</li>
+        <li data-page-node-id="3AisXl3IFm2RSz6BtVVOkq"><b data-page-node-id="B3muIHHyu42YvQ9mv1tKAs">🕳 孔板开关</b>：<em data-page-node-id="aMmlO14l38opD6ZkFA2wtP">新增</em>——顶栏「孔板」按钮可显示/隐藏水流开始的孔板平台（随工程保存）</li>
+        <li data-page-node-id="jlkObCKMUDpVVSppt9NK4G"><b data-page-node-id="nS0SjD57tOzPGmdHlcX1z8">面板高度</b>：拖动时间线面板上边缘调整布局</li>
       </ul></div>
-      <div class="hsec"><h4>🎙 音频与节奏</h4><ul>
-        <li><b>导入口播</b>：导入外部音频（mp3 / wav / ogg / m4a…），时间轴显示波形</li>
-        <li><b>对齐</b>：拖动播放头沿波形精确对齐关键帧节奏；点 🎙 标签可移除</li>
-        <li>导出时可勾选「混入口播」合成进视频（实时录制模式）</li>
+      <div class="hsec" data-page-node-id="9wfCKz1E03CGeprlvNY0Hg"><h4 data-page-node-id="zIJJkFrH5yYgvebhxtrHV5">🎙 音频与节奏</h4><ul data-page-node-id="oDarJFM3jhSYWPgfU1z9XZ">
+        <li data-page-node-id="KDQH8pi6V3KDLyBlXmE9hc"><b data-page-node-id="RyXOg4E8GOc8e1JKsj6tz2">导入口播</b>：导入外部音频（mp3 / wav / ogg / m4a…），时间轴显示波形</li>
+        <li data-page-node-id="MJABTJmnFMD5o3i9jzAGob"><b data-page-node-id="ETeTJ0P7opik9eBHthkn2B">对齐</b>：拖动播放头沿波形精确对齐关键帧节奏；点 🎙 标签可移除</li>
+        <li data-page-node-id="ppMPxPWqZFd7XkKIbZsfC2">导出时可勾选「混入口播」合成进视频（实时录制模式）</li>
       </ul></div>
-      <div class="hsec"><h4>💾 工程管理</h4><ul>
-        <li><b>自动保存</b>：所有修改实时保存到本地，刷新页面不丢失</li>
-        <li><b>💾 保存工程</b>：导出 .json 工程文件，可备份 / 分享</li>
-        <li><b>📂 打开工程</b>：从 .json 恢复全部关键帧与设置（也可直接把文件拖进页面）</li>
-        <li><b>🗑 新建</b>：清空当前内容恢复默认演示动画</li>
-        <li><em>注意</em>：音频不内嵌工程文件（仅波形数据），恢复后需重新导入音频</li>
+      <div class="hsec" data-page-node-id="k9BiMkRxeEfmyFiekpSTzR"><h4 data-page-node-id="ftDIAgH6zyzLzoEq2bBTia">💾 工程管理</h4><ul data-page-node-id="4D4iZDz6lcCoefMzSmvU0V">
+        <li data-page-node-id="C9oF0RoE2PLHiYTubq45BH"><b data-page-node-id="6dvEYL1BuGPxsyVqb2ReqH">自动保存</b>：所有修改实时保存到本地，刷新页面不丢失</li>
+        <li data-page-node-id="aJt2A0zmeCgmeygTdDdbOm"><b data-page-node-id="7bWeKV7AIA6bSE60d4VtXP">💾 保存工程</b>：导出 .json 工程文件，可备份 / 分享</li>
+        <li data-page-node-id="jGsoJfE8BqymsDAcVa4uoX"><b data-page-node-id="huf6DhMzx97ap3lfb4RBZq">📂 打开工程</b>：从 .json 恢复全部关键帧与设置（也可直接把文件拖进页面）</li>
+        <li data-page-node-id="R1uvfXKQ0KcFOkCHZB3DoA"><b data-page-node-id="Hi2BpzFvGXbuNn8nT3DgC4">🗑 新建</b>：清空当前内容恢复默认演示动画</li>
+        <li data-page-node-id="Hmasy0Il0EsMD571Yej9Fv"><em data-page-node-id="qFMGL219x7aHPDpzamGTpB">注意</em>：音频不内嵌工程文件（仅波形数据），恢复后需重新导入音频</li>
       </ul></div>
-      <div class="hsec"><h4>⬇ 导出动画</h4><ul>
-        <li><b>格式</b>：MP4（H.264 通用可预览）/ MOV（H.264 兼容容器）/ PNG 序列（ZIP 打包）</li>
-        <li><b>文件名</b>：<em>新增</em>——可自定义导出文件名；留空自动命名（有口播用音频名，否则用 模拟器名+日期）</li>
-        <li><b>透明背景</b>：<em>新增</em>——PNG 序列可选「透明背景」，导出帧背景透明（alpha 通道），便于 AE/剪辑后期合成或抠像</li>
-        <li><b>精确帧率</b>：无声导出采用 WebCodecs 精确编码，帧率严格等于所选值；混入口播时为实时录制</li>
-        <li>导出范围即画幅框（🔲）所示画面</li>
+      <div class="hsec" data-page-node-id="Lw9LsxU2SwLbZeaG04FVvK"><h4 data-page-node-id="R6mmkmBRYgJWfXS9tGfpj2">⬇ 导出动画</h4><ul data-page-node-id="8dmf4AbgswLRz8qSyxwh6Q">
+        <li data-page-node-id="07yiBjl9VG0OZieOCqRIwx"><b data-page-node-id="zn7pGHANXeTChoNIhM6Tgb">格式</b>：MP4（H.264 通用可预览）/ MOV（H.264 兼容容器）/ PNG 序列（ZIP 打包）</li>
+        <li data-page-node-id="dD3k3L8AmMPQaOBWqt27Gf"><b data-page-node-id="V2ornph2vvuAgQ4mH6FLrD">文件名</b>：<em data-page-node-id="lkelSGAUYWfe8Ral3TaP6W">新增</em>——可自定义导出文件名；留空自动命名（有口播用音频名，否则用 模拟器名+日期）</li>
+        <li data-page-node-id="XOX70V55cIrrIAl0HXOG1A"><b data-page-node-id="sEIiDcVCGE0ydg9GbyPQbn">透明背景</b>：<em data-page-node-id="wp8qHZ2oElaDPVcGPIYn5R">新增</em>——PNG 序列可选「透明背景」，导出帧背景透明（alpha 通道），便于 AE/剪辑后期合成或抠像</li>
+        <li data-page-node-id="HFeG8sNUOpGt9Flsaf0JhK"><b data-page-node-id="JeDbAxFe5RWndOHzdoUz4f">精确帧率</b>：无声导出采用 WebCodecs 精确编码，帧率严格等于所选值；混入口播时为实时录制</li>
+        <li data-page-node-id="DaU0lnxfY3GhvFqXjtvGfh">导出范围即画幅框（🔲）所示画面</li>
       </ul></div>
-      <div class="hsec"><h4>⌨️ 快捷键速查</h4><ul>
-        <li><kbd>空格</kbd> 播放 / 暂停　<kbd>←</kbd><kbd>→</kbd> 逐帧　<kbd>Esc</kbd> 取消选择 / 关闭面板</li>
-        <li><kbd>Delete</kbd> / <kbd>Backspace</kbd> 删除选中关键帧</li>
-        <li><kbd>⌘C</kbd>/<kbd>⌃C</kbd> 复制　<kbd>⌘X</kbd>/<kbd>⌃X</kbd> 剪切　<kbd>⌘V</kbd>/<kbd>⌃V</kbd> 粘贴到播放头</li>
-        <li><kbd>⌘Z</kbd>/<kbd>⌃Z</kbd> 撤回　<kbd>⌘⇧Z</kbd>/<kbd>⌃⇧Z</kbd>/<kbd>⌃Y</kbd> 重做</li>
-        <li><kbd>Shift</kbd>+框选 追加选择　<kbd>Alt</kbd>+滚轮 缩放时间轴</li>
+      <div class="hsec" data-page-node-id="ZhdVvVdoAXpr89CzGVbCFU"><h4 data-page-node-id="bCFySbRrF2JuVeEkjxetGW">⌨️ 快捷键速查</h4><ul data-page-node-id="zwxtBv9ne1OAA8dyrAbsUa">
+        <li data-page-node-id="UcG3UxypROCeSpXVhIKHDg"><kbd data-page-node-id="9mOIG9F1lUlFfZBV18cJXG">空格</kbd> 播放 / 暂停　<kbd data-page-node-id="B9A7bHmjfJYURycsaTfq1J">←</kbd><kbd data-page-node-id="WA6J3PAgM5KSlvop6IqAxC">→</kbd> 逐帧　<kbd data-page-node-id="Yb619dCLGGoFTyAVFm3YG3">Esc</kbd> 取消选择 / 关闭面板</li>
+        <li data-page-node-id="HXPkQYQ6rqAnXH2erAEMRa"><kbd data-page-node-id="W8PaP2nsxCO4ghE0FyoPCD">Delete</kbd> / <kbd data-page-node-id="CoAqBpdvaUYCEBvYQGzfsd">Backspace</kbd> 删除选中关键帧</li>
+        <li data-page-node-id="bA8gWHds3hWRuGuGKxOTKc"><kbd data-page-node-id="O6SD9PlrtR9tcERodUoAyS">⌘C</kbd>/<kbd data-page-node-id="Bwj02NDJVdOWUL3hnPoleN">⌃C</kbd> 复制　<kbd data-page-node-id="c27WT1t7CYUtvXMMc50fXZ">⌘X</kbd>/<kbd data-page-node-id="wbhKimddKgIWtTU0MBjE3r">⌃X</kbd> 剪切　<kbd data-page-node-id="LJ1DFe2NMotF6XYVo6VbcU">⌘V</kbd>/<kbd data-page-node-id="jT2l59KRNcyrqdZm4t2PLn">⌃V</kbd> 粘贴到播放头</li>
+        <li data-page-node-id="kjWAU6cABHSkhj0VqoBDFn"><kbd data-page-node-id="BUPH4URwV0rc4wXDBADhdW">⌘Z</kbd>/<kbd data-page-node-id="uKIzIJTU5reFV1XsrHyiMK">⌃Z</kbd> 撤回　<kbd data-page-node-id="LmxYhlgBHCCkfx41DmDvso">⌘⇧Z</kbd>/<kbd data-page-node-id="75ynfHrpmc7EL8PXoLwtFt">⌃⇧Z</kbd>/<kbd data-page-node-id="zds3X9YFgFjuUZ5Q0bYOnl">⌃Y</kbd> 重做</li>
+        <li data-page-node-id="BkyUE7yQdLz0wTDIsGYHPK"><kbd data-page-node-id="Ar1JlBuhD44SOVVqWPBo5I">Shift</kbd>+框选 追加选择　<kbd data-page-node-id="keOiBNAHN9rI4R54i9wCAP">Alt</kbd>+滚轮 缩放时间轴</li>
       </ul></div>
     </div>
   </div>
