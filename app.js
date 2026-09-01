@@ -887,7 +887,7 @@ colorOverlay.querySelectorAll('[data-g]').forEach(el => {
 function keysOf(id) { return state.keys[id]; }
 function evalTrack(id, t) {
   const ks = keysOf(id);
-  if (!ks.length) return state.statics[id];
+  if (!ks || !ks.length) return state.statics[id]; // 防御：新版本 TRACKS 比旧版多/重命名时，state.keys[id] 可能 undefined
   if (t <= ks[0].t) return ks[0].v;
   if (t >= ks[ks.length - 1].t) return ks[ks.length - 1].v;
   let i = 0;
@@ -1612,8 +1612,11 @@ function drawRuler() {
 function renderDiamonds() {
   for (const tr of TRACKS) {
     const lane = laneEls[tr.id];
+    if (!lane) continue;
     lane.querySelectorAll('.diamond').forEach(d => d.remove());
-    keysOf(tr.id).forEach((k, i) => {
+    const ks = keysOf(tr.id);
+    if (!ks) continue; // 防御：旧 localStorage 工程可能缺新轨道，导致 state.keys[tr.id] 是 undefined
+    ks.forEach((k, i) => {
       const d = document.createElement('div');
       d.className = 'diamond' + (k.interp !== 'smooth' ? ' ' + k.interp : '');
       d.style.left = (k.t * state.px) + 'px';
@@ -2733,6 +2736,11 @@ function sanitizeProject(data) {
     arr.sort((a, b) => a.t - b.t);
     p.keys[id] = arr;
   }
+  // 防御：旧 localStorage 工程可能缺少新版本新增的 TRACKS 轨道（camOrbit 等），
+  // 确保每个已知轨道在 p.keys 中都有空数组，避免 evalTrack / renderDiamonds 读 undefined.length
+  for (const tr of TRACKS) {
+    if (!Array.isArray(p.keys[tr.id])) p.keys[tr.id] = [];
+  }
   if (data.audio && Array.isArray(data.audio.peaks) && data.audio.peaks.length) {
     p.audio = {
       name: String(data.audio.name || '音频'),
@@ -2809,7 +2817,7 @@ async function importProjectFile(file) {
     applyAll(state.time);
     updateUndoButtons();
     scheduleAutosave();
-    const keyCount = Object.values(p.keys).reduce((s, a) => s + a.length, 0);
+    const keyCount = Object.values(p.keys).reduce((s, a) => s + ((Array.isArray(a) ? a.length : 0)), 0);
     flashHint(`📂 已打开工程「${file.name}」— ${p.duration}s · ${keyCount} 个关键帧`);
   } catch (err) {
     alert('工程文件读取失败：' + err.message);
@@ -2854,7 +2862,9 @@ function tryRestoreAutosave() {
     flashHint('已自动恢复上次的工程（关键帧/时长/设置均已保存）');
     return true;
   } catch (e) {
-    console.warn('自动恢复失败：', e);
+    console.warn('自动恢复失败（清掉损坏数据，使用默认工程）：', e);
+    // 旧版本 localStorage 工程结构与新版本不兼容（轨道增删/重命名），主动清掉避免每次打开都进 catch
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
     return false;
   }
 }
