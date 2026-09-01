@@ -896,10 +896,13 @@ function keyIndexAt(id, t, tol = 0.5 / PREVIEW_FPS) {
 function snapToFrame(t) { // 帧吸附：时间量化到最近帧边界（PREVIEW_FPS）
   return Math.round(t * PREVIEW_FPS) / PREVIEW_FPS;
 }
+function snapFine(t) { // 精细网格：亚帧量化（帧率×10，如 30fps → 1/300s）——Shift 精细拖动用
+  return Math.round(t * PREVIEW_FPS * 10) / (PREVIEW_FPS * 10);
+}
 const KF_SNAP_PX = 12; // 关键帧吸附阈值（屏幕像素，随时间轴缩放自适应）
 function snapTargetT(t, skipTracks) { // 跨轨道关键帧吸附：在其余轨道中找与 t 最接近的关键帧
   // 命中返回 {t, id, k}（吸附目标），未启用/未命中返回 null
-  const snap = shiftHeld ? !kfSnapOn : kfSnapOn; // 拖动时按住 Shift 临时反转吸附开关（开→临时不吸，关→临时吸）
+  const snap = kfSnapOn; // 按住 Shift 拖动走精细模式（1/10 速度 + 亚帧网格 + 不吸附），不再反转本开关
   if (!snap) return null;
   const tol = KF_SNAP_PX / state.px;
   let best = null, bestD = tol;
@@ -1658,7 +1661,7 @@ function bindTimelineEvents() {
       renderDiamonds();
     }
     beginGesture();
-    drag = { trackId, index, moved: false, lastSnap: null,
+    drag = { trackId, index, moved: false, lastSnap: null, startX: e.clientX,
       group: [...state.sel].map(key => {
         const [id, i] = key.split(':');
         const kf = keysOf(id)[+i];
@@ -1670,20 +1673,28 @@ function bindTimelineEvents() {
     if (!drag) return;
     const lane = laneEls[drag.trackId];
     const rect = lane.getBoundingClientRect();
-    let t = snapToFrame((e.clientX - rect.left) / state.px); // 拖动吸附到帧
-    t = Math.min(state.duration, Math.max(0, t));
     const k = keysOf(drag.trackId)[drag.index];
     if (!k) { drag = null; return; }
     if (!drag.moved) snapshot();
     const main = drag.group.find(g => g.id === drag.trackId && g.i === drag.index);
     const skipTracks = new Set(drag.group.map(g => g.id)); // 拖动组所在轨道不参与吸附目标
-    const snapped = main ? snapTargetT(t, skipTracks) : null; // 跨轨道关键帧吸附
-    const targetT = snapped ? snapped.t : t;
-    if (snapped) { drag.lastSnap = snapped; flashSnap(snapped); } // 吸附命中 → 高亮目标帧
-    const delta = main ? targetT - main.initT : 0;
-    for (const g of drag.group) { // 整组同步移动（逐帧吸附）
+    let delta, snapped = null;
+    if (shiftHeld) { // 精细模式：1/10 拖动速度 + 亚帧网格（1/300s）+ 跳过跨轨道吸附（与数据条 Shift 细调同语义）
+      const t = Math.min(state.duration, Math.max(0, snapFine(
+        main ? main.initT + (e.clientX - drag.startX) / (state.px * 10)
+             : (e.clientX - rect.left) / state.px)));
+      delta = main ? t - main.initT : 0;
+    } else {
+      let t = snapToFrame((e.clientX - rect.left) / state.px); // 拖动吸附到帧
+      t = Math.min(state.duration, Math.max(0, t));
+      snapped = main ? snapTargetT(t, skipTracks) : null; // 跨轨道关键帧吸附
+      const targetT = snapped ? snapped.t : t;
+      if (snapped) { drag.lastSnap = snapped; flashSnap(snapped); } // 吸附命中 → 高亮目标帧
+      delta = main ? targetT - main.initT : 0;
+    }
+    for (const g of drag.group) { // 整组同步移动（Shift 精细组内同样亚帧网格）
       if (!g.k) continue;
-      g.k.t = snapToFrame(Math.min(state.duration, Math.max(0, g.initT + delta)));
+      g.k.t = (shiftHeld ? snapFine : snapToFrame)(Math.min(state.duration, Math.max(0, g.initT + delta)));
       const el = laneEls[g.id].querySelector(`.diamond[data-index="${g.i}"]`);
       if (el) el.style.left = (g.k.t * state.px) + 'px';
     }
@@ -2558,8 +2569,8 @@ const btnKfSnap = document.getElementById('btn-kf-snap');
 function syncKfSnapBtn() {
   btnKfSnap.classList.toggle('on', kfSnapOn);
   btnKfSnap.title = kfSnapOn
-    ? '关键帧吸附：已开启 — 拖动关键帧会自动吸附到其他轨道上相近的关键帧（点击关闭）'
-    : '关键帧吸附：已关闭 — 拖动关键帧不再吸附其他轨道（点击开启）';
+    ? '关键帧吸附：已开启 — 拖动关键帧会自动吸附到其他轨道上相近的关键帧（按住 Shift 拖动 = 精细微调，不吸附；点击关闭）'
+    : '关键帧吸附：已关闭 — 拖动关键帧不再吸附其他轨道（按住 Shift 拖动 = 精细微调；点击开启）';
 }
 btnKfSnap.addEventListener('click', () => {
   kfSnapOn = !kfSnapOn;
