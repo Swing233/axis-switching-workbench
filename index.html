@@ -361,7 +361,7 @@
     <div class="logo" data-page-node-id="N60b1PuHeesFBtcmBsC79h">✦ 射流轴交换 · Axis Switching 动画工作台</div>
     <div class="sep" data-page-node-id="qRmhrW0phOAoVBKHOwEQXs"></div>
     <button id="btn-view" class="tbtn on" data-page-node-id="zWsDdpkSyDseeYOXYC14Rk">🎥 摄像机视角</button>
-    <button id="btn-sync-cam" class="tbtn" title="把当前视口机位写入播放头时间的关键帧：自由视角摆好机位（旋转/缩放/右键平移）后点此，动画在该时刻即使用此视角" data-page-node-id="1l7uTQGEzpfoMwEm1YzI8I">📌 同步视角</button>
+    <button id="btn-sync-cam" class="tbtn" title="把当前视口机位写入播放头时间的关键帧并切回摄像机视角：自由视角摆好机位（旋转/缩放/右键平移）后点此，动画在该时刻即使用此视角" data-page-node-id="1l7uTQGEzpfoMwEm1YzI8I">📌 同步视角</button>
     <button id="btn-pick-tgt" class="tbtn" title="拾取视觉中心：点下后在画面中点选主体，将其设为视觉中心（同时写入当前时间的视觉中心关键帧；Esc 退出）" data-page-node-id="PICKTGT1">◎ 视觉中心</button>
     <button id="btn-grid" class="tbtn on" title="显示/隐藏全局参考网格" data-page-node-id="u84QXLiJLZBFnfVFNvxZyK">📐 网格</button>
     <button id="btn-frame" class="tbtn on" title="显示/隐藏最终导出视频画幅（安全框，虚线范围即导出画面）" data-page-node-id="tJ7TPl9k6rVZNIG9JTEFDJ">🔲 画幅框</button>
@@ -385,7 +385,7 @@
     <button id="btn-color" class="tbtn" title="配色：更改不同线条的颜色，以及液柱/截面/前端/扫描框等平面的颜色与透明度" data-page-node-id="tDHU9m8FqHHyDfI0Yl04yT">🎨 配色</button>
     <button id="btn-help" class="tbtn" title="打开帮助看板：全部功能与快捷键总览（Esc 关闭）" data-page-node-id="DsNqny21nuCUUlRq4qwy9C">❓ 帮助</button>
     <div class="spacer" data-page-node-id="sIKcFnPdC5Q303pRa2qviG"></div>
-    <div class="hint" data-page-node-id="FC0pNBH73fGX7HfIVsrjD2">💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete/X 删除所选关键帧 · Shift+拖动 精细微调 · ◎ 视觉中心 点选主体 · 自由视角拖动机位后自动同步 · ❓ 帮助看板看全部功能</div>
+    <div class="hint" data-page-node-id="FC0pNBH73fGX7HfIVsrjD2">💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete/X 删除所选关键帧 · Shift+拖动 吸附关键帧 · ◎ 视觉中心 点选主体 · 自由视角用 📌 同步视角固化机位 · ❓ 帮助看板看全部功能</div>
   </div>
 
   <div id="main" data-page-node-id="fuUE7SJB49hdIkWVDZhyO9">
@@ -417,7 +417,7 @@
       <label class="tl-hint" title="播放头/关键帧/粘贴均自动吸附到帧边界（帧率见状态栏，默认 30fps）" data-page-node-id="Fp2NlfXeFFDcsUwyFEnk6t">🧲 帧吸附</label>
       <label class="tl-hint" title="按住 Alt 滚动鼠标滚轮：以鼠标位置为中心缩放时间轴（等效于拖动缩放滑杆）" data-page-node-id="AYN07EdU2fReFc6e8OApUz">🔍 Alt+滚轮缩放</label>
       <label class="tl-hint" title="⌘C/⌃C 复制选中关键帧 · ⌘X/⌃X 剪切 · ⌘V/⌃V 粘贴到当前播放头位置（保持各帧相对时间偏移，支持框选批量）" data-page-node-id="NVdEmb1jt0uJywKGTa2hx3">⧉ 复制粘贴</label>
-      <button id="btn-kf-snap" class="tbtn on" title="关键帧吸附：拖动关键帧时自动吸附到其他轨道上相近的关键帧，让不同轨道的帧对齐到同一时间列（按住 Shift 拖动进入精细微调：1/10 速度 + 亚帧网格，不吸附）" data-page-node-id="ABIG20JT3ZHbOCWiSNVuzF">🧲 吸附</button>
+      <button id="btn-kf-snap" class="tbtn on" title="关键帧吸附：拖动关键帧时自动吸附到其他轨道上相近的关键帧，让不同轨道的帧对齐到同一时间列（按住 Shift 拖动同样强制吸附，不受本开关影响）" data-page-node-id="ABIG20JT3ZHbOCWiSNVuzF">🧲 吸附</button>
       <button id="btn-key-all" class="tbtn" title="为所有轨道在当前时间添加关键帧" data-page-node-id="LdIOSgfi79lkIEOTRxwVYG">◇ 全部打关键帧</button>
       <button id="btn-del-key" class="tbtn" title="删除当前选中的关键帧（支持框选批量删除）" data-page-node-id="10Ll4hqGso9O0TSRN1tp2Y">🗑 删除关键帧</button>
       <button id="btn-paste-key" class="tbtn" title="把剪贴板中的关键帧粘贴到当前播放头位置，保持相对时间偏移（⌘V / Ctrl+V），粘贴的帧默认线性插值" data-page-node-id="CJ3jvzPwwlESWjGMB6vorw">📋 粘贴关键帧</button>
@@ -571,8 +571,8 @@
         <li data-page-node-id="Dldpf7GFSqm6R10OpFhK0Y"><b data-page-node-id="p3xHAg6wBxzVkBCLuAtaRU">自动打帧</b>：直接拖动左侧参数面板滑杆或数值框，当前时间自动记录关键帧；按住 <kbd data-page-node-id="SHFTFINE1">Shift</kbd> 拖动滑杆进入<em data-page-node-id="SHFTFINE2">精细调节</em>（1/10 步进，滑杆青蓝高亮提示），可逐毫级微调参数</li>
         <li data-page-node-id="6JPdr0DE7nF13RGEWvKIBQ"><b data-page-node-id="Da3UGqd9EcjZKQEApM1RUR">参数范围手柄</b>：<em data-page-node-id="yjriDjhmoTAMB8jcViO1Ad">新增</em>——每个参数的滑杆是常用调节范围（手柄），数值框或按住拖拽可<b data-page-node-id="MH4IqrmrwgYfGxe1YbRuhH">继续超出增减</b>（安全边界内）；超出后滑杆贴边并变红高亮</li>
         <li data-page-node-id="jlLFHIQ7eHWlBIZ8pb82kY"><b data-page-node-id="1TCQe9sOAgNsQMem93SOn1">选中</b>：单击菱形单选；<b data-page-node-id="vlBmhwMRM8qwCJI02jNni3">⛶ 框选</b>——在轨道空白处按住拖出矩形框选多帧（<kbd data-page-node-id="t7LTXD0uOEct6pyzfgB4pj">Shift</kbd> 追加选择）</li>
-        <li data-page-node-id="bHjdnWDb2awCVBFuBaXaBc"><b data-page-node-id="c1xgcEay95w5EUA1TlkNQy">移动</b>：拖动菱形改时间；框选后拖动任一帧<em data-page-node-id="75TOYKe3A22Rkoofj14wA9">整组同步移动</em>；<b>按住 <kbd>Shift</kbd> 拖动</b>进入<em>精细微调</em>（1/10 速度 + 1/300s 亚帧网格，可把帧放到任意细位置，不吸附）</li>
-        <li data-page-node-id="PRLPFj0DW2JHEJNRHxnIn2"><b data-page-node-id="tonesmrnRvHl1p5w3MvysG">🧲 关键帧吸附</b>：工具栏「吸附」开关（默认开启）——拖动关键帧时自动吸附到<b data-page-node-id="edU560RKqoWP6CEuS6tr8E">其他轨道</b>上相近的关键帧，让不同轨道的帧对齐到同一时间列（阈值随时间轴缩放自适应，吸附命中时目标帧金色高亮）；想自由摆放时<b>按住 <kbd>Shift</kbd> 拖动</b>即可（精细微调模式不吸附）</li>
+        <li data-page-node-id="bHjdnWDb2awCVBFuBaXaBc"><b data-page-node-id="c1xgcEay95w5EUA1TlkNQy">移动</b>：拖动菱形改时间；框选后拖动任一帧<em data-page-node-id="75TOYKe3A22Rkoofj14wA9">整组同步移动</em>；<b>按住 <kbd>Shift</kbd> 拖动</b>强制<em>吸附关键帧</em>（跨轨道对齐，不受「🧲 吸附」开关影响）</li>
+        <li data-page-node-id="PRLPFj0DW2JHEJNRHxnIn2"><b data-page-node-id="tonesmrnRvHl1p5w3MvysG">🧲 关键帧吸附</b>：工具栏「吸附」开关（默认开启）——拖动关键帧时自动吸附到<b data-page-node-id="edU560RKqoWP6CEuS6tr8E">其他轨道</b>上相近的关键帧，让不同轨道的帧对齐到同一时间列（阈值随时间轴缩放自适应，吸附命中时目标帧金色高亮）；开关关闭时<b>按住 <kbd>Shift</kbd> 拖动</b>可临时强制吸附</li>
         <li data-page-node-id="cZUG1aEIzwaELg6kfvPJ7F"><b data-page-node-id="kLzAd1XOky6Vd6MEw1Rwdu">编辑数值</b>：双击菱形打开编辑器（时间 / 数值 / 插值）</li>
         <li data-page-node-id="118zwDY5NHQgdf3qLVdXU5"><b data-page-node-id="ioZ6TU7VS9yHGgCIkrSLQ5">复制 / 剪切 / 粘贴</b>：<kbd data-page-node-id="f5aKJeSQVEs8kjQRwslPwM">⌘C</kbd>/<kbd data-page-node-id="rj71dcSIm9IZHLWmqEIk10">⌃C</kbd>、<kbd data-page-node-id="8uFRicUPFSqlDZi348EjS7">⌘X</kbd>/<kbd data-page-node-id="bbkRbIWeTZWSK3NKVzdYZC">⌃X</kbd>、<kbd data-page-node-id="x7AppjlBXbPnA2RNjpgFmF">⌘V</kbd>/<kbd data-page-node-id="sHTH1HtFbbGnb1q3e3KO6D">⌃V</kbd>（或 📋 按钮）——粘贴到播放头位置，保持各帧相对时间偏移，<em data-page-node-id="ezDvhAZU2wRHyysXZDMnoP">粘贴的帧默认线性插值</em></li>
         <li data-page-node-id="1E60KhiU3AenItvwVA2YzM"><b data-page-node-id="8vD71yUppbGCjhZH4HNWwj">∿ 批量插值</b>：<em data-page-node-id="abp45LUKZD0M6BHDwLxtkR">新增</em>——选中（或框选）关键帧后，用工具栏「批量插值」下拉一键改为 平滑 / 线性 / 阶梯，一次可撤回</li>
@@ -580,10 +580,11 @@
         <li data-page-node-id="TC8ajEPTQebcITF2A806CV"><b data-page-node-id="FLkZVHpXzKvZYABM4v9myK">取消选择</b>：<kbd data-page-node-id="7eP6mHyH3JhHIKANwDXJLN">Esc</kbd>（再按关闭编辑器 / 帮助看板）</li>
       </ul></div>
       <div class="hsec" data-page-node-id="gKL9LIvIlTlIhabBYDByAt"><h4 data-page-node-id="XZ3qAwgWCM6QNmyiq8BC72">🎥 视角与画面</h4><ul data-page-node-id="V7Ivk8whX8DUHRoseIPGQL">
-        <li data-page-node-id="nPGjr5BihdYjZY8wLVwUFa"><b data-page-node-id="NCm3HC9eqwDJWhMTnScQG6">视角切换</b>：🎥 摄像机视角（按关键帧动画渲染）/ 🖐 自由视角（拖拽旋转 · 滚轮缩放 · 右键平移）——<b>自由视角松手后自动把当前机位写入关键帧并切回摄像机视角</b>（纯点击无位移不触发）</li>
-        <li data-page-node-id="0GD1nrROURXd5dP0G4WzrD"><b data-page-node-id="NgSbc8CG9jm4u4O7V0yHai">📌 同步视角</b>：自由视角摆好机位后一键写入当前时间的关键帧（不偏移视觉中心：仅旋转/缩放时视觉中心保持不变）</li>
-        <li data-page-node-id="PICKTGT2"><b>◎ 视觉中心拾取</b>：<em>新增</em>——顶栏「视觉中心」按钮进入拾取模式，在画面中点选主体即可将其设为视觉中心（写入当前时间的视觉中心关键帧；Esc 退出）；在「摄像机始终看向视觉中心」开启时画面立即对准该点</li>
+        <li data-page-node-id="nPGjr5BihdYjZY8wLVwUFa"><b data-page-node-id="NCm3HC9eqwDJWhMTnScQG6">视角切换</b>：🎥 摄像机视角（按关键帧动画渲染）/ 🖐 自由视角（拖拽旋转 · 滚轮缩放 · 右键平移）——<b>自由视角拖动只观察，不自动改动画；摆好机位后点「📌 同步视角」才写入关键帧并切回摄像机视角</b></li>
+        <li data-page-node-id="0GD1nrROURXd5dP0G4WzrD"><b data-page-node-id="NgSbc8CG9jm4u4O7V0yHai">📌 同步视角</b>：自由视角摆好机位后一键写入当前时间的关键帧并切回摄像机视角（不偏移视觉中心：仅旋转/缩放时视觉中心保持不变）</li>
+        <li data-page-node-id="PICKTGT2"><b>◎ 视觉中心拾取</b>：<em>新增</em>——顶栏「视觉中心」按钮进入拾取模式，在画面中点选<b>场景物体</b>（射流、孔板等；网格/扫描框/截面不算）即<b>以该物体中心</b>为视觉中心（写入当前时间的视觉中心关键帧；Esc 退出）；在「摄像机始终看向视觉中心」开启时画面立即对准该物体</li>
         <li data-page-node-id="LOOKAT2"><b>摄像机始终看向视觉中心</b>：勾选时摄像机每帧朝向视觉中心（关键帧存 camX/Y/Z + tgtX/Y/Z）；<em>取消勾选</em>时朝向改由「旋转 X/Y/Z」关键帧控制，<b>画面不跳变</b>（当前朝向自动写入旋转关键帧），且自由视角的旋转中心随之变为相机前方视线点（不再以视觉中心为旋转中心）</li>
+        <li data-page-node-id="ORBIT1"><b>绕视觉中心旋转°</b>：摄像机轨道组新增参数——相机位置绕视觉中心（tgt）绕 Y 轴旋转该角度（保持高度与朝向），0 即不旋转；配合「位置 X/Z」可实现以视觉中心为轴的环绕镜头（如 0°→90°→180°→270° 打环绕关键帧）</li>
         <li data-page-node-id="9vg62aTRpTqDvx9qJQ4deP"><b data-page-node-id="kK86Z06pLLXDAFfFg1AXib">📐 网格</b>：全局坐标轴参考网格显示开关</li>
         <li data-page-node-id="fYV7jNAMC5w23nmGAo1IRB"><b data-page-node-id="N1f9gKgS9GXtNYxcIBfa3O">🔲 画幅框</b>：显示最终导出视频的画面范围（虚线安全框）</li>
         <li data-page-node-id="QtFVvV5AzPbEayBRPWpZT8"><b data-page-node-id="lblKPKBqJ9xu1N4FPZIYC4">🎨 背景色</b>：<em data-page-node-id="shQpHcls4VaJtwYHiTpIQN">新增</em>——顶栏「背景」下拉一键切换 深空蓝 / 纯黑 / 纯白 / 纯绿（抠像）等纯色背景，或右侧色板自定义任意颜色；背景实时生效并随导出视频一并输出（纯色抠像建议关闭 📐 网格）</li>
@@ -615,7 +616,7 @@
         <li data-page-node-id="HXPkQYQ6rqAnXH2erAEMRa"><kbd data-page-node-id="W8PaP2nsxCO4ghE0FyoPCD">Delete</kbd> / <kbd data-page-node-id="CoAqBpdvaUYCEBvYQGzfsd">Backspace</kbd> 删除选中关键帧</li>
         <li data-page-node-id="bA8gWHds3hWRuGuGKxOTKc"><kbd data-page-node-id="O6SD9PlrtR9tcERodUoAyS">⌘C</kbd>/<kbd data-page-node-id="Bwj02NDJVdOWUL3hnPoleN">⌃C</kbd> 复制　<kbd data-page-node-id="c27WT1t7CYUtvXMMc50fXZ">⌘X</kbd>/<kbd data-page-node-id="wbhKimddKgIWtTU0MBjE3r">⌃X</kbd> 剪切　<kbd data-page-node-id="LJ1DFe2NMotF6XYVo6VbcU">⌘V</kbd>/<kbd data-page-node-id="jT2l59KRNcyrqdZm4t2PLn">⌃V</kbd> 粘贴到播放头</li>
         <li data-page-node-id="kjWAU6cABHSkhj0VqoBDFn"><kbd data-page-node-id="BUPH4URwV0rc4wXDBADhdW">⌘Z</kbd>/<kbd data-page-node-id="uKIzIJTU5reFV1XsrHyiMK">⌃Z</kbd> 撤回　<kbd data-page-node-id="LmxYhlgBHCCkfx41DmDvso">⌘⇧Z</kbd>/<kbd data-page-node-id="75ynfHrpmc7EL8PXoLwtFt">⌃⇧Z</kbd>/<kbd data-page-node-id="zds3X9YFgFjuUZ5Q0bYOnl">⌃Y</kbd> 重做</li>
-        <li data-page-node-id="BkyUE7yQdLz0wTDIsGYHPK"><kbd data-page-node-id="Ar1JlBuhD44SOVVqWPBo5I">Shift</kbd>+框选 追加选择　<kbd data-page-node-id="keOiBNAHN9rI4R54i9wCAP">Alt</kbd>+滚轮 缩放时间轴　<kbd>Shift</kbd>+拖动菱形 精细微调</li>
+        <li data-page-node-id="BkyUE7yQdLz0wTDIsGYHPK"><kbd data-page-node-id="Ar1JlBuhD44SOVVqWPBo5I">Shift</kbd>+框选 追加选择　<kbd data-page-node-id="keOiBNAHN9rI4R54i9wCAP">Alt</kbd>+滚轮 缩放时间轴　<kbd>Shift</kbd>+拖动菱形 吸附关键帧　<kbd>Shift</kbd>+拖动滑杆 精细调节</li>
       </ul></div>
     </div>
   </div>
