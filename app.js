@@ -209,6 +209,7 @@ const TRACKS = [
   { g: '摄像机', id: 'camX', label: '位置 X', min: -400, max: 400, lo: -1200, hi: 1200, step: 1, def: Math.round(CAM_DIST * 0.75) },
   { g: '摄像机', id: 'camY', label: '位置 Y', min: -250, max: 150, lo: -600, hi: 600, step: 1, def: Math.round(-L0 * 0.35) },
   { g: '摄像机', id: 'camZ', label: '位置 Z', min: -400, max: 400, lo: -1200, hi: 1200, step: 1, def: Math.round(CAM_DIST * 0.75) },
+  { g: '摄像机', id: 'camOrbit', label: '绕视觉中心旋转°', min: -180, max: 180, lo: -720, hi: 720, step: 1, def: 0 },
   { g: '摄像机', id: 'rotX', label: '旋转 X°', min: -180, max: 180, lo: -540, hi: 540, step: 1, def: 0 },
   { g: '摄像机', id: 'rotY', label: '旋转 Y°', min: -180, max: 180, lo: -540, hi: 540, step: 1, def: 0 },
   { g: '摄像机', id: 'rotZ', label: '旋转 Z°', min: -180, max: 180, lo: -540, hi: 540, step: 1, def: 0 },
@@ -376,6 +377,7 @@ const jet = (() => {
 
   // 扫描平面组（白框 + 半透明面 + 高亮截面）
   const scanGroup = new THREE.Group();
+  scanGroup.name = '扫描框';
   let scanBoxMat = null, scanPlaneMat = null;
   {
     const t = 1.1;
@@ -466,6 +468,7 @@ const jet = (() => {
     plate.rotation.x = Math.PI / 2;
     plate.position.y = 0.3;
     plateGroup = new THREE.Group();
+    plateGroup.name = '孔板';
     plateGroup.visible = plateVisible; // 孔板显示开关（模块级，随工程持久化）
     plateGroup.add(plate);
     scene.add(plateGroup);
@@ -510,6 +513,7 @@ const jet = (() => {
       mat.clippingPlanes = [clipPlane];
       jetMat = mat;
       jetMesh = new THREE.Mesh(geo, mat);
+      jetMesh.name = '射流';
       scene.add(jetMesh);
 
       const om = new THREE.MeshBasicMaterial({
@@ -518,6 +522,7 @@ const jet = (() => {
       });
       om.clippingPlanes = [clipPlane];
       overlay = new THREE.Mesh(geo, om);
+      overlay.name = '射流';
       overlay.renderOrder = 2;
       scene.add(overlay);
 
@@ -525,6 +530,7 @@ const jet = (() => {
       cm.clippingPlanes = [clipPlane];
       cageMat = cm;
       cage = new THREE.LineSegments(new THREE.BufferGeometry(), cm);
+      cage.name = '流线笼';
       scene.add(cage);
     } else {
       jetMesh.geometry.dispose();
@@ -729,6 +735,7 @@ const jet = (() => {
       frontFill = new THREE.Mesh(fillGeo, new THREE.MeshBasicMaterial({
         color: new THREE.Color(colors.planes.frontFill.color).getHex(), transparent: true, opacity: colors.planes.frontFill.opacity, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
       }));
+      frontFill.name = '截面';
       frontFill.renderOrder = 15;
       scene.add(frontFill);
     } else { frontFill.geometry.dispose(); frontFill.geometry = fillGeo; }
@@ -738,6 +745,7 @@ const jet = (() => {
     const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
     if (!frontLine) {
       frontLine = new THREE.LineLoop(lineGeo, new THREE.LineBasicMaterial({ color: new THREE.Color(colors.lines.front.color).getHex(), transparent: true, opacity: colors.lines.front.opacity, toneMapped: false }));
+      frontLine.name = '截面';
       frontLine.renderOrder = 16;
       scene.add(frontLine);
     } else { frontLine.geometry.dispose(); frontLine.geometry = lineGeo; }
@@ -896,13 +904,10 @@ function keyIndexAt(id, t, tol = 0.5 / PREVIEW_FPS) {
 function snapToFrame(t) { // 帧吸附：时间量化到最近帧边界（PREVIEW_FPS）
   return Math.round(t * PREVIEW_FPS) / PREVIEW_FPS;
 }
-function snapFine(t) { // 精细网格：亚帧量化（帧率×10，如 30fps → 1/300s）——Shift 精细拖动用
-  return Math.round(t * PREVIEW_FPS * 10) / (PREVIEW_FPS * 10);
-}
 const KF_SNAP_PX = 12; // 关键帧吸附阈值（屏幕像素，随时间轴缩放自适应）
 function snapTargetT(t, skipTracks) { // 跨轨道关键帧吸附：在其余轨道中找与 t 最接近的关键帧
   // 命中返回 {t, id, k}（吸附目标），未启用/未命中返回 null
-  const snap = kfSnapOn; // 按住 Shift 拖动走精细模式（1/10 速度 + 亚帧网格 + 不吸附），不再反转本开关
+  const snap = kfSnapOn || shiftHeld; // 吸附开关开启，或按住 Shift 拖动 → 强制吸附关键帧
   if (!snap) return null;
   const tol = KF_SNAP_PX / state.px;
   let best = null, bestD = tol;
@@ -1221,13 +1226,23 @@ function applyAll(t, forceCamera = false) {
   // 摄像机
   const driveCamera = forceCamera || state.view === 'camera';
   if (driveCamera) {
-    camera.position.set(v.camX, v.camY, v.camZ);
+    let cx = v.camX, cy = v.camY, cz = v.camZ;
+    if (v.camOrbit) { // 绕视觉中心旋转：相机位置绕视觉中心（tgt）绕 Y 轴旋转 camOrbit 度（保持高度），仍看向中心
+      const rad = THREE.MathUtils.degToRad(v.camOrbit);
+      const dx = cx - v.tgtX, dz = cz - v.tgtZ;
+      const r = Math.hypot(dx, dz) || 1;
+      const a = Math.atan2(dz, dx) + rad;
+      cx = v.tgtX + r * Math.cos(a);
+      cz = v.tgtZ + r * Math.sin(a);
+    }
+    camera.position.set(cx, cy, cz);
     if (state.lookAtTarget) {
       camera.lookAt(v.tgtX, v.tgtY, v.tgtZ);
     } else {
       camera.rotation.set(THREE.MathUtils.degToRad(v.rotX), THREE.MathUtils.degToRad(v.rotY), THREE.MathUtils.degToRad(v.rotZ), 'YXZ');
     }
     if (camera.fov !== v.fov) { camera.fov = v.fov; camera.updateProjectionMatrix(); }
+    camera.updateMatrixWorld(); // 相机不在 scene 内，显式更新矩阵，保证机位/朝向改动立即反映到渲染
   }
   // 自由视角旋转中心：看向视觉中心 → 视觉中心；取消看向 → 相机前方视线点（不随视觉中心）
   if (driveCamera) {
@@ -1378,7 +1393,7 @@ function flashHint(msg) {
   hintEl.textContent = msg; hintEl.style.color = '#8fd0ff';
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => {
-    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete/X 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴（粘贴默认线性） · 框选后可批量改插值 · 双击轨道空白处加帧 · 拖动数值改参数（自动打帧，Shift 细调） · 标尺/轨道拖动跳转（吸附帧） · 🧲 吸附：拖动关键帧对齐其他轨道（Shift 临时反转） · ◎ 视觉中心：点选主体 · 自由视角松手自动同步并切回 · Alt+滚轮 缩放时间轴 · 🎙 导入口播 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程 · ❓ 帮助看板';
+    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete/X 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴（粘贴默认线性） · 框选后可批量改插值 · 双击轨道空白处加帧 · 拖动数值改参数（自动打帧，Shift 细调） · 标尺/轨道拖动跳转（吸附帧） · 🧲 吸附：拖动关键帧对齐其他轨道（Shift+拖动 强制吸附） · ◎ 视觉中心：点选主体 · 自由视角：📌 同步视角手动固化机位并切回 · Alt+滚轮 缩放时间轴 · 🎙 导入口播 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程 · ❓ 帮助看板';
     hintEl.style.color = '';
   }, 7000);
 }
@@ -1661,7 +1676,7 @@ function bindTimelineEvents() {
       renderDiamonds();
     }
     beginGesture();
-    drag = { trackId, index, moved: false, lastSnap: null, startX: e.clientX,
+    drag = { trackId, index, moved: false, lastSnap: null,
       group: [...state.sel].map(key => {
         const [id, i] = key.split(':');
         const kf = keysOf(id)[+i];
@@ -1678,23 +1693,15 @@ function bindTimelineEvents() {
     if (!drag.moved) snapshot();
     const main = drag.group.find(g => g.id === drag.trackId && g.i === drag.index);
     const skipTracks = new Set(drag.group.map(g => g.id)); // 拖动组所在轨道不参与吸附目标
-    let delta, snapped = null;
-    if (shiftHeld) { // 精细模式：1/10 拖动速度 + 亚帧网格（1/300s）+ 跳过跨轨道吸附（与数据条 Shift 细调同语义）
-      const t = Math.min(state.duration, Math.max(0, snapFine(
-        main ? main.initT + (e.clientX - drag.startX) / (state.px * 10)
-             : (e.clientX - rect.left) / state.px)));
-      delta = main ? t - main.initT : 0;
-    } else {
-      let t = snapToFrame((e.clientX - rect.left) / state.px); // 拖动吸附到帧
-      t = Math.min(state.duration, Math.max(0, t));
-      snapped = main ? snapTargetT(t, skipTracks) : null; // 跨轨道关键帧吸附
-      const targetT = snapped ? snapped.t : t;
-      if (snapped) { drag.lastSnap = snapped; flashSnap(snapped); } // 吸附命中 → 高亮目标帧
-      delta = main ? targetT - main.initT : 0;
-    }
-    for (const g of drag.group) { // 整组同步移动（Shift 精细组内同样亚帧网格）
+    let t = snapToFrame((e.clientX - rect.left) / state.px); // 拖动吸附到帧
+    t = Math.min(state.duration, Math.max(0, t));
+    const snapped = main ? snapTargetT(t, skipTracks) : null; // 跨轨道关键帧吸附（Shift 按住强制吸附）
+    const targetT = snapped ? snapped.t : t;
+    if (snapped) { drag.lastSnap = snapped; flashSnap(snapped); } // 吸附命中 → 高亮目标帧
+    const delta = main ? targetT - main.initT : 0;
+    for (const g of drag.group) { // 整组同步移动（逐帧吸附）
       if (!g.k) continue;
-      g.k.t = (shiftHeld ? snapFine : snapToFrame)(Math.min(state.duration, Math.max(0, g.initT + delta)));
+      g.k.t = snapToFrame(Math.min(state.duration, Math.max(0, g.initT + delta)));
       const el = laneEls[g.id].querySelector(`.diamond[data-index="${g.i}"]`);
       if (el) el.style.left = (g.k.t * state.px) + 'px';
     }
@@ -1959,7 +1966,7 @@ function setView(mode) {
   btnView.classList.toggle('on', !free);
   btnSyncCam.classList.toggle('on', free);
   viewBadge.textContent = free
-    ? '自由视角 · 拖拽旋转 / 滚轮缩放 / 右键平移 · 松手自动同步到关键帧并切回摄像机视角'
+    ? '自由视角 · 拖拽旋转 / 滚轮缩放 / 右键平移 · 点「📌 同步视角」固化机位并切回摄像机视角'
     : '摄像机视角 · 按关键帧动画渲染';
   if (free && !state.lookAtTarget) refreshFreePivot(); // 取消看向视觉中心：自由视角旋转中心 = 相机前方视线点
   applyAll(state.time);
@@ -2005,23 +2012,12 @@ function syncFreeViewToKeys() {
   clearTimeout(syncToastTimer);
   syncToastTimer = setTimeout(() => {
     viewBadge.textContent = state.view === 'free'
-      ? '自由视角 · 拖拽旋转 / 滚轮缩放 / 右键平移 · 松手自动同步到关键帧并切回摄像机视角'
+      ? '自由视角 · 拖拽旋转 / 滚轮缩放 / 右键平移 · 点「📌 同步视角」固化机位并切回摄像机视角'
       : '摄像机视角 · 按关键帧动画渲染';
   }, 2200);
 }
-btnSyncCam.addEventListener('click', syncFreeViewToKeys);
-
-// --- 自由视角调整机位后：自动同步到关键帧并切回摄像机视角 ---
-// （阻尼稳定后触发；纯点击/无位移不触发，避免冗余关键帧）
-let freeCamStart = null;
-controls.addEventListener('start', () => {
-  if (state.view !== 'free' || pickTargetMode) return;
-  freeCamStart = { px: camera.position.clone(), tx: controls.target.clone() };
-});
-controls.addEventListener('end', () => {
-  if (state.view !== 'free' || pickTargetMode || !freeCamStart) return;
-  const s = freeCamStart; freeCamStart = null;
-  if (camera.position.distanceTo(s.px) < 0.05 && controls.target.distanceTo(s.tx) < 0.05) return; // 纯点击
+btnSyncCam.addEventListener('click', () => { // 手动固化机位：同步到关键帧并切回摄像机视角
+  if (state.view !== 'free') { flashHint('请先切换到自由视角调整机位，再点「📌 同步视角」固化'); return; }
   syncFreeViewToKeys();
   setView('camera');
 });
@@ -2038,7 +2034,7 @@ function setPickMode(on) {
   viewBadge.textContent = on
     ? '🎯 拾取模式：在画面上点击主体，将其设为视觉中心（Esc 退出）'
     : (state.view === 'free'
-      ? '自由视角 · 拖拽旋转 / 滚轮缩放 / 右键平移 · 松手自动同步到关键帧并切回摄像机视角'
+      ? '自由视角 · 拖拽旋转 / 滚轮缩放 / 右键平移 · 点「📌 同步视角」固化机位并切回摄像机视角'
       : '摄像机视角 · 按关键帧动画渲染');
 }
 btnPickTgt.addEventListener('click', () => setPickMode(!pickTargetMode));
@@ -2049,7 +2045,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   pickDownPos = null;
   pickAt(e);
 });
-function pickAt(e) { // 射线拾取：命中点写入视觉中心关键帧
+function pickAt(e) { // 物体拾取：命中的场景主体 → 以物体包围盒中心为视觉中心（非表面命中点）
   const rect = renderer.domElement.getBoundingClientRect();
   const ndc = new THREE.Vector2(
     ((e.clientX - rect.left) / rect.width) * 2 - 1,
@@ -2057,17 +2053,31 @@ function pickAt(e) { // 射线拾取：命中点写入视觉中心关键帧
   );
   pickRaycaster.setFromCamera(ndc, camera);
   const hits = pickRaycaster.intersectObjects(scene.children, true);
-  if (!hits.length) { flashHint('未点中任何主体，再试一次'); return; }
-  const pt = hits[0].point;
+  let obj = null;
+  for (const h of hits) {
+    let o = h.object;
+    while (o.parent && o.parent !== scene) o = o.parent; // 归并到 scene 直属对象（独立"物体"）
+    if (!o.parent || o === grid || !o.visible) continue;  // 非 scene 子树 / 参考网格 / 隐藏对象跳过
+    if (!isPickableObject(o)) continue;                    // 辅助可视化对象（扫描框/截面等）跳过
+    obj = o; break;
+  }
+  if (!obj) { flashHint('未点中主体（网格/扫描框/截面不算），请点射流、孔板等场景物体'); return; }
+  const box = new THREE.Box3().setFromObject(obj); // 物体包围盒中心 = 视觉中心
+  const c = box.getCenter(new THREE.Vector3());
   snapshot();
   const set = (id, v) => upsertKey(id, state.time, clampTrack(id, v));
-  set('tgtX', pt.x); set('tgtY', pt.y); set('tgtZ', pt.z);
-  controls.target.copy(pt);
+  set('tgtX', c.x); set('tgtY', c.y); set('tgtZ', c.z);
+  controls.target.copy(c);
   renderTimeline();
   applyAll(state.time);
   if (state.view === 'free' && !state.lookAtTarget) controls.target.copy(freePivot); // 取消看向：旋转中心保持相机视线点，不随新视觉中心
   setPickMode(false);
-  flashHint(`🎯 视觉中心已设为 (${pt.x.toFixed(1)}, ${pt.y.toFixed(1)}, ${pt.z.toFixed(1)})，摄像机已对准（⌘Z 可撤回）`);
+  flashHint(`🎯 视觉中心已设为「${obj.name || '物体'}」中心 (${c.x.toFixed(1)}, ${c.y.toFixed(1)}, ${c.z.toFixed(1)})，摄像机已对准（⌘Z 可撤回）`);
+}
+function isPickableObject(o) { // 场景主体判定：排除参考网格/扫描框/截面/标签等辅助可视化
+  const n = (o.name || '').toLowerCase();
+  if (/grid|scan|扫描|front|section|截面|halo|helper|axis|label|标签/i.test(n)) return false;
+  return true;
 }
 
 // --- 撤销 / 重做按钮 ---
@@ -2569,8 +2579,8 @@ const btnKfSnap = document.getElementById('btn-kf-snap');
 function syncKfSnapBtn() {
   btnKfSnap.classList.toggle('on', kfSnapOn);
   btnKfSnap.title = kfSnapOn
-    ? '关键帧吸附：已开启 — 拖动关键帧会自动吸附到其他轨道上相近的关键帧（按住 Shift 拖动 = 精细微调，不吸附；点击关闭）'
-    : '关键帧吸附：已关闭 — 拖动关键帧不再吸附其他轨道（按住 Shift 拖动 = 精细微调；点击开启）';
+    ? '关键帧吸附：已开启 — 拖动关键帧会自动吸附到其他轨道上相近的关键帧（按住 Shift 拖动同样强制吸附；点击关闭）'
+    : '关键帧吸附：已关闭 — 拖动关键帧不再吸附其他轨道（按住 Shift 拖动可临时强制吸附；点击开启）';
 }
 btnKfSnap.addEventListener('click', () => {
   kfSnapOn = !kfSnapOn;
