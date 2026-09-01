@@ -52,8 +52,16 @@ function flippedRadius(shape, k, theta) {
   return shapeRadius(shape, k, theta - rot);
 }
 
-/** 形状渐变：w=1 → 出口形状；w=0 → 翻转形状；w=0.5 → 接近圆形 */
+/** 形状渐变：w=1 → 出口形状；w=0 → 翻转形状；w=0.5 → 正圆 */
 function morphRadius(d, theta, w) {
+  if (d.shape === 'ellipse') {
+    // Rayleigh (1879) 椭圆孔射流：r(θ)=a0+a2·cos(2θ)，n=2 椭圆模态。
+    // 等面积精确过渡：截面恒为椭圆，半轴比 f = k^(w-0.5)（半轴 f 与 1/f，面积恒 π），
+    //   w=1 → 横椭圆（长轴水平）；w=0.5 → 正圆；w=0 → 竖椭圆（转 90°）
+    const f = Math.pow(d.aspectK, w - 0.5);
+    const c = Math.cos(theta), s = Math.sin(theta);
+    return 1 / Math.sqrt((c * c) / (f * f) + f * f * s * s);
+  }
   return w * shapeRadius(d.shape, d.aspectK, theta) + (1 - w) * flippedRadius(d.shape, d.aspectK, theta);
 }
 
@@ -256,8 +264,8 @@ function seedDemo() {
   K('camY', [[0, -40], [5, -72], [9, -36], [14, -40]]);
   K('tgtY', [[0, -50], [14, -50]]);
   K('fov', [[0, 42], [7, 38], [14, 42]]);
-  // 液柱生长（开孔出水）
-  K('frontProgress', [[0, 0], [3, 1], [14, 1]]);
+  // 液柱生长：默认全程展开（t=0 即完全长出），保证打开页面立即可见
+  K('frontProgress', [[0, 1], [14, 1]]);
   // 孔型切换：椭圆(90°) → 矩形(90°) → 方孔(45°) → 椭圆
   K('shape', [[0, 0, 'step'], [8, 0, 'step'], [8.1, 1, 'step'], [10.4, 1, 'step'], [10.5, 3, 'step'], [12.4, 3, 'step'], [12.5, 0, 'step'], [14, 0, 'step']]);
   K('widthMm', [[0, 3], [8, 3], [10.5, 2.4], [12.4, 2.4], [12.5, 3], [14, 3]]);
