@@ -344,6 +344,10 @@ const COLOR_DEFAULTS = {
 const colors = JSON.parse(JSON.stringify(COLOR_DEFAULTS));
 let plateVisible = true; // 孔板（水流开始平台）显示开关，随工程持久化
 let kfSnapOn = localStorage.getItem('kfSnapOn') !== '0'; // 关键帧吸附开关：跨轨道吸附，默认开启，localStorage 持久化
+let shiftHeld = false; // Shift 精细调节：拖动数据条（range 滑块）时按住 Shift 用 1/10 步进
+document.addEventListener('keydown', e => { if (e.key === 'Shift') shiftHeld = true; });
+document.addEventListener('keyup', e => { if (e.key === 'Shift') shiftHeld = false; });
+window.addEventListener('blur', () => { shiftHeld = false; });
 
 // 参考地面网格
 const grid = new THREE.GridHelper(300, 30, 0x1d2f52, 0x14233f);
@@ -1087,6 +1091,20 @@ function updateUndoButtons() {
 }
 
 // 修改参数值 → 在当前播放头时间自动创建/更新关键帧
+// Shift 细调显示精度：滑块 step 小数位数 +1（细调步进多一位小数），最少 2 位
+function fmtVal(tr, val) {
+  if (tr.integer) return String(Math.round(val));
+  const s = String(tr.step);
+  const dec = Math.max(2, (s.split('.')[1] ? s.split('.')[1].length : 0) + 1);
+  return (+val).toFixed(dec);
+}
+// Shift 精细调节：range 滑块 step 临时切换为 1/10（整数轨道无效，保持原步进）
+function applyFineStep(range, tr) {
+  const fine = shiftHeld && !tr.integer;
+  range.step = String(fine ? tr.step / 10 : tr.step);
+  range.classList.toggle('fine', fine);
+}
+
 function commitValue(tr, raw) {
   snapshot();
   let val = parseFloat(raw);
@@ -1106,7 +1124,7 @@ function makeScrub(el, tr) {
     e.preventDefault();
     e.stopPropagation();
     beginGesture();
-    scrub = { startX: e.clientX, startVal: currentValue(tr.id), moved: false, shift: e.shiftKey };
+    scrub = { startX: e.clientX, startVal: currentValue(tr.id), moved: false };
     el.classList.add('scrubbing');
     try { el.setPointerCapture(e.pointerId); } catch (_) {}
   });
@@ -1115,7 +1133,7 @@ function makeScrub(el, tr) {
     const dx = e.clientX - scrub.startX;
     if (Math.abs(dx) > 3) scrub.moved = true;
     const base = (tr.max - tr.min) / 200;
-    const step = scrub.shift ? base * 0.1 : base;
+    const step = shiftHeld ? base * 0.1 : base;
     let val = scrub.startVal + dx * step;
     val = Math.min(tr.hi ?? tr.max, Math.max(tr.lo ?? tr.min, val));
     if (tr.integer) val = Math.round(val);
@@ -1248,7 +1266,7 @@ const panelInputs = {}; // id -> {range, num, kfBtn, segBtns?}
         <div class="segbtns">${tr.seg.map((s, i) => `<button data-seg="${tr.id}" data-v="${i}">${s}</button>`).join('')}</div>${kfBtn}`;
     } else {
       row.innerHTML = `<div class="pname" title="${tr.label}">${tr.label}</div>
-        <input type="range" data-id="${tr.id}" min="${tr.min}" max="${tr.max}" step="${tr.step}" title="常用调节范围手柄（可继续用右侧数值框/拖拽超出）"/>
+        <input type="range" data-id="${tr.id}" min="${tr.min}" max="${tr.max}" step="${tr.step}" title="常用调节范围手柄（可继续用右侧数值框/拖拽超出；按住 Shift 拖动进入 1/10 步进精细调节）"/>
         <input type="number" data-id="${tr.id}" min="${tr.lo ?? tr.min}" max="${tr.hi ?? tr.max}" step="${tr.step}" title="可直接输入：可超出滑杆范围继续增减（安全边界 ${tr.lo ?? tr.min} ~ ${tr.hi ?? tr.max}）"/>${kfBtn}`;
     }
     panel.appendChild(row);
@@ -1265,8 +1283,15 @@ const panelInputs = {}; // id -> {range, num, kfBtn, segBtns?}
     const pi = panelInputs[tr.id];
     const commit = raw => commitValue(tr, raw);
     if (pi.range) {
-      pi.range.addEventListener('pointerdown', beginGesture);
-      pi.range.addEventListener('input', e => commit(e.target.value));
+      pi.range.addEventListener('pointerdown', e => {
+        beginGesture();
+        applyFineStep(pi.range, tr); // 按下瞬间按 Shift 状态切换细调步进
+      });
+      pi.range.addEventListener('input', e => {
+        applyFineStep(pi.range, tr); // 拖动中按/松 Shift 实时生效（每帧跟随）
+        commit(e.target.value);
+      });
+      pi.range.addEventListener('pointerup', () => { pi.range.step = String(tr.step); });
       pi.num.addEventListener('change', e => commit(e.target.value));
       makeScrub(pi.num, tr);
     }
@@ -1288,10 +1313,10 @@ function syncPanel(v) {
     if (pi.range && document.activeElement !== pi.range) pi.range.value = Math.min(tr.max, Math.max(tr.min, val));
     // 当前值超出滑杆手柄范围时高亮提示（数值本身保留，可从数值框继续增减）
     if (pi.range) pi.range.classList.toggle('overflow', val < tr.min || val > tr.max);
-    if (pi.num && document.activeElement !== pi.num) pi.num.value = tr.integer ? val : (+val).toFixed(2);
+    if (pi.num && document.activeElement !== pi.num) pi.num.value = fmtVal(tr, val);
     if (pi.segs) pi.segs.forEach(b => b.classList.toggle('on', +b.dataset.v === Math.round(val)));
     const tv = document.querySelector(`.tl-name .tval[data-id="${tr.id}"]`);
-    if (tv) tv.textContent = tr.integer ? val : (+val).toFixed(2);
+    if (tv) tv.textContent = fmtVal(tr, val);
   }
 }
 function updateKfButtons() {
@@ -1321,7 +1346,7 @@ function flashHint(msg) {
   hintEl.textContent = msg; hintEl.style.color = '#8fd0ff';
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => {
-    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴（粘贴默认线性） · 框选后可批量改插值 · 双击轨道空白处加帧 · 拖动数值改参数（自动打帧） · 标尺/轨道拖动跳转（吸附帧） · 🧲 吸附：拖动关键帧对齐其他轨道 · Alt+滚轮 缩放时间轴 · 🎙 导入口播 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程 · ❓ 帮助看板';
+    hintEl.textContent = '💾 自动保存 · 空格 播放/暂停 · ←/→ 逐帧 · Delete 删除所选关键帧 · ⌘C/⌘X/⌘V 复制/剪切/粘贴（粘贴默认线性） · 框选后可批量改插值 · 双击轨道空白处加帧 · 拖动数值改参数（自动打帧，Shift 细调） · 标尺/轨道拖动跳转（吸附帧） · 🧲 吸附：拖动关键帧对齐其他轨道 · Alt+滚轮 缩放时间轴 · 🎙 导入口播 · ⌘Z/⌃Z 撤回 · ⌘⇧Z/⌃⇧Z 重做 · 💾 保存工程/📂 打开工程 · ❓ 帮助看板';
     hintEl.style.color = '';
   }, 7000);
 }
