@@ -315,15 +315,20 @@
   }
 
   /* ---------- 导出弹窗 ---------- */
-  #export-modal{
+  #export-modal, #project-save-modal{
     position:fixed; inset:0; z-index:200; background:rgba(8,9,12,.66); backdrop-filter:blur(3px);
     display:none; align-items:center; justify-content:center;
   }
-  #export-modal .card{
+  #export-modal .card, #project-save-modal .card{
     width:400px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px 22px;
     box-shadow:0 20px 60px #000d;
   }
-  #export-modal h2{font-size:15px; margin-bottom:14px; color:var(--accent2);}
+  #export-modal h2, #project-save-modal h2{font-size:15px; margin-bottom:14px; color:var(--accent2);}
+  #project-save-modal .floc{display:flex; align-items:center; gap:6px; flex:1; min-width:0;}
+  #project-save-modal #ps-loc{flex:1; min-width:0; background:#14161b; color:var(--dim); border:1px solid var(--line); border-radius:5px; padding:5px 8px; font-size:12px; text-overflow:ellipsis; white-space:nowrap; overflow:hidden;}
+  #project-save-modal #ps-browse{flex:0 0 auto; background:#1c2433; color:#8fd0ff; border:1px solid #2c3a55; border-radius:5px; padding:0 9px; height:26px; cursor:pointer; font-size:12px; white-space:nowrap;}
+  #project-save-modal #ps-browse:hover{border-color:#4a6ea8;}
+  #project-save-modal #ps-browse:disabled{opacity:.4; cursor:not-allowed;}
   .frow{display:flex; align-items:center; gap:10px; margin:10px 0; font-size:12.5px; color:var(--dim);}
   .frow>span{width:72px; flex:0 0 72px;}
   .frow select,.frow input{
@@ -334,8 +339,8 @@
   #export-progress{height:8px; background:#14161b; border-radius:4px; overflow:hidden; margin:12px 0 4px; display:none;}
   #export-progress i{display:block; height:100%; width:0; background:linear-gradient(90deg,#f6b95a,#e3962b);}
   #export-status{font-size:11.5px; color:var(--dim); min-height:17px;}
-  #export-modal .ebtns{display:flex; gap:8px; margin-top:14px;}
-  #export-modal .ebtns .tbtn{flex:1; justify-content:center; height:32px;}
+  #export-modal .ebtns, #project-save-modal .ebtns{display:flex; gap:8px; margin-top:14px;}
+  #export-modal .ebtns .tbtn, #project-save-modal .ebtns .tbtn{flex:1; justify-content:center; height:32px;}
 
   /* 扫描平面标签 */
   .scan-label{
@@ -515,6 +520,31 @@
   </div>
 </div>
 
+<!-- 保存工程弹窗：可自定义文件名；Chrome/Edge 支持系统「另存为」自选保存位置（File System Access API），
+     其他浏览器降级为浏览器默认下载目录 -->
+<div id="project-save-modal">
+  <div class="card">
+    <h2>💾 保存工程</h2>
+    <div class="frow"><span>文件名</span><input id="ps-name" type="text" style="flex:1" placeholder="留空自动命名（axis-switching_工程_时间戳）"/></div>
+    <div class="frow"><span>保存位置</span>
+      <div class="floc">
+        <input id="ps-loc" type="text" readonly value="浏览器默认下载目录"/>
+        <button id="ps-browse" type="button" title="Chrome/Edge：打开系统「另存为」对话框，可直接选择保存位置与文件名（覆盖上方文件名输入）；其他浏览器不支持自选位置">📁 浏览…</button>
+      </div>
+    </div>
+    <div class="frow" style="align-items:flex-start"><span></span>
+      <div style="font-size:11.5px;line-height:1.6;color:var(--dim)">
+        <div id="ps-info"></div>
+        <div id="ps-fs-note" style="display:none;margin-top:3px;color:#e6b450">⚠ 当前浏览器不支持自选保存位置（需 Chrome/Edge），将保存到浏览器默认下载目录。</div>
+      </div>
+    </div>
+    <div class="ebtns">
+      <button id="ps-save" class="tbtn primary">保存工程</button>
+      <button id="ps-cancel" class="tbtn">取消</button>
+    </div>
+  </div>
+</div>
+
 <!-- 配色面板：线条颜色 + 平面颜色/透明度 -->
 <div id="color-overlay" data-page-node-id="MKr0xZ2eaWxDSdKCBPjjZ9">
   <div class="color-card" data-page-node-id="NxEgbcEsSgqSRG8gMyVttC">
@@ -599,7 +629,7 @@
       </ul></div>
       <div class="hsec" data-page-node-id="k9BiMkRxeEfmyFiekpSTzR"><h4 data-page-node-id="ftDIAgH6zyzLzoEq2bBTia">💾 工程管理</h4><ul data-page-node-id="4D4iZDz6lcCoefMzSmvU0V">
         <li data-page-node-id="C9oF0RoE2PLHiYTubq45BH"><b data-page-node-id="6dvEYL1BuGPxsyVqb2ReqH">自动保存</b>：所有修改实时保存到本地，刷新页面不丢失</li>
-        <li data-page-node-id="aJt2A0zmeCgmeygTdDdbOm"><b data-page-node-id="7bWeKV7AIA6bSE60d4VtXP">💾 保存工程</b>：导出 .json 工程文件，可备份 / 分享</li>
+        <li data-page-node-id="aJt2A0zmeCgmeygTdDdbOm"><b data-page-node-id="7bWeKV7AIA6bSE60d4VtXP">💾 保存工程</b>：弹出保存窗口，可自定义文件名；Chrome/Edge 支持点「📁 浏览…」打开系统另存为，直接选择保存位置（其他浏览器保存到默认下载目录）。.json 工程文件可备份 / 分享</li>
         <li data-page-node-id="jGsoJfE8BqymsDAcVa4uoX"><b data-page-node-id="huf6DhMzx97ap3lfb4RBZq">📂 打开工程</b>：从 .json 恢复全部关键帧与设置（也可直接把文件拖进页面）</li>
         <li data-page-node-id="R1uvfXKQ0KcFOkCHZB3DoA"><b data-page-node-id="Hi2BpzFvGXbuNn8nT3DgC4">🗑 新建</b>：清空当前内容恢复默认演示动画</li>
         <li data-page-node-id="Hmasy0Il0EsMD571Yej9Fv"><em data-page-node-id="qFMGL219x7aHPDpzamGTpB">注意</em>：音频不内嵌工程文件（仅波形数据），恢复后需重新导入音频</li>
