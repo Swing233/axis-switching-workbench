@@ -2978,6 +2978,11 @@ function loop() {
     }
   }
   syncAudioTime();
+  // 导出期间让导出循环独占 canvas 渲染权：主循环若继续 renderer.render 会用播放头
+  // 静止画面覆写 drawing buffer——PNG 序列的 canvas.toBlob 是异步读 buffer，4K 下编码
+  // 慢、rAF 极易插队，导致导出的 PNG 错帧/残缺/全为预览帧（MP4 用 VideoFrame 同步捕获
+  // 无此窗口，故 MP4 正常 PNG 异常）。录制类导出（MediaRecorder/captureStream）同样受益。
+  if (exporting) return;
   controls.update();
   applyAll(state.time);
   renderer.render(scene, camera);
