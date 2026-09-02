@@ -2324,8 +2324,10 @@ async function frameAccurateExport(w, h, fps, wantWebm, isMov = false) {
     for (let i = 0; i < frames; i++) {
       if (exportCancelled) break;
       const t = i / fps;
+      // 关键帧驱动相机后不要再调 controls.update()：OrbitControls.update() 无 enabled 门控，
+      // 会无条件 camera.lookAt(controls.target)，覆盖 rotX/rotY/rotZ 关键帧朝向（lookAtTarget=false 时
+      // target=freePivot）→ 导出机位与预览不一致。预览循环是 update 在前、applyAll 在后，故无此问题。
       applyAll(t, true);
-      controls.update();
       renderer.render(scene, camera);
       const vf = new VideoFrame(canvas, { timestamp: i * usPerFrame, duration: usPerFrame });
       enc.encode(vf, { keyFrame: i % Math.round(fps * 5) === 0 });
@@ -2396,8 +2398,7 @@ async function recordingExport(w, h, fps, wantWebm, isMov = false) {
       if (exportCancelled) { finish(); return; }
       const el = (performance.now() - t0) / 1000;
       if (el >= state.duration) { finish(); return; }
-      applyAll(el, true);
-      controls.update();
+      applyAll(el, true); // 关键帧最后写相机；勿再调 controls.update()（会 lookAt(target) 覆盖朝向，见精确编码处注释）
       renderer.render(scene, camera);
       bar.style.width = Math.min(100, (el / state.duration * 100).toFixed(1)) + '%';
       status.textContent = `录制中 ${el.toFixed(2)}s / ${state.duration.toFixed(1)}s（${ext.toUpperCase()} ${isMp4 ? 'H.264' : 'VP9'}，导出后可直接预览）`;
@@ -2545,8 +2546,7 @@ document.getElementById('exp-start').addEventListener('click', async () => {
     for (let i = 0; i < frames; i++) {
       if (exportCancelled) break;
       const t = i / fps;
-      applyAll(t, true);
-      controls.update();
+      applyAll(t, true); // 同上：关键帧最后写相机，不再调 controls.update() 避免 lookAt(target) 覆盖朝向
       renderer.render(scene, camera);
       const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
       zip.file(`frame_${pad(i)}.png`, blob);
@@ -3045,8 +3045,11 @@ function loop() {
   // 导出期间让导出循环独占 canvas 渲染权：主循环若继续 renderer.render 会用播放头
   // 静止画面覆写 drawing buffer——PNG 序列的 canvas.toBlob 是异步读 buffer，4K 下编码
   // 慢、rAF 极易插队，导致导出的 PNG 错帧/残缺/全为预览帧（MP4 用 VideoFrame 同步捕获
-  // 无此窗口，故 MP4 正常 PNG 异常）。录制类导出（MediaRecorder/captureStream）同样受益。
-  if (exporting) return;
+  // 无此窗口，故 MP4 正常 PNG 异常）。
+  // 例外：口播实时录制（exportLiveVoice）不渲染自身、以主循环为唯一渲染源，若一并短路
+  // 会录到冻结首帧，故 state.exportLive 时主循环继续按关键帧渲染（该路径无 toBlob/VideoFrame
+  // 捕获，不存在覆写竞态）。
+  if (exporting && !state.exportLive) return;
   controls.update();
   applyAll(state.time);
   renderer.render(scene, camera);
