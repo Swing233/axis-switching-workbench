@@ -233,6 +233,7 @@ const TRACKS = [
   { g: '液柱显示', id: 'flowStripes', label: '流动条纹', min: 0, max: 1, step: 1, def: 1, integer: true, seg: ['关', '开'] },
   { g: '液柱显示', id: 'scanOn', label: '截面扫描', min: 0, max: 1, step: 1, def: 0, integer: true, seg: ['关', '开'] },
   { g: '液柱显示', id: 'scanDepth', label: '扫描深度 z', min: 0, max: 220, lo: 0, hi: 500, step: 0.5, def: 33 },
+  { g: '液柱显示', id: 'scanSize', label: '扫描框大小', min: 10, max: 120, lo: 5, hi: 240, step: 1, def: FRAME_SIZE },
   { g: '液柱显示', id: 'frontProgress', label: '液柱生长', min: 0, max: 1, lo: 0, hi: 1, step: 0.01, def: 1 },
 ];
 const TRACK_MAP = Object.fromEntries(TRACKS.map(t => [t.id, t]));
@@ -386,6 +387,11 @@ const jet = (() => {
   // 扫描平面组（白框 + 半透明面 + 高亮截面）
   const scanGroup = new THREE.Group();
   scanGroup.name = '扫描框';
+  // 白框 + 半透明面单独放 frameGroup，可整体缩放调整大小；高亮截面（sectionMesh/halo/line）加在 scanGroup 上不受缩放影响
+  const frameGroup = new THREE.Group();
+  frameGroup.name = '扫描框框体';
+  let frameSize = FRAME_SIZE; // 当前扫描框边长 mm（可调）
+  let curScanZ = 0;           // 当前扫描深度 mm（供 label 定位复用）
   let scanBoxMat = null, scanPlaneMat = null;
   {
     const t = 1.1;
@@ -394,7 +400,7 @@ const jet = (() => {
     const mk = (w, h, x, z) => {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, t, h), mat);
       m.position.set(x, 0, z);
-      scanGroup.add(m);
+      frameGroup.add(m);
     };
     const S = FRAME_SIZE;
     mk(S, t, 0, -S / 2); mk(S, t, 0, S / 2);
@@ -406,7 +412,8 @@ const jet = (() => {
     );
     plane.rotation.x = -Math.PI / 2;
     plane.renderOrder = 18;
-    scanGroup.add(plane);
+    frameGroup.add(plane);
+    scanGroup.add(frameGroup);
     scanGroup.visible = false;
     scene.add(scanGroup);
   }
@@ -610,6 +617,22 @@ const jet = (() => {
     applyDim();
   }
 
+  // 调整扫描框大小（整体缩放白框 + 半透明面，高亮截面不受影响）
+  function setScanSize(sizeMm) {
+    frameSize = Math.max(1, sizeMm);
+    frameGroup.scale.setScalar(frameSize / FRAME_SIZE);
+    placeScanLabel();
+  }
+
+  // 扫描平面文字标签：跟随框右边缘投影定位
+  function placeScanLabel() {
+    const v = new THREE.Vector3(frameSize / 2 + 3, -curScanZ, 0).project(camera);
+    const w = viewportWrap.clientWidth, h = viewportWrap.clientHeight;
+    scanLabel.style.left = (((v.x + 1) / 2) * w) + 'px';
+    scanLabel.style.top = (((-v.y + 1) / 2) * h - 8) + 'px';
+    scanLabel.textContent = `扫描平面  z = ${curScanZ.toFixed(1)} mm`;
+  }
+
   function applyDim() {
     if (jetMat) {
       jetMat.transmission = dim ? 0 : 0.85;
@@ -692,6 +715,7 @@ const jet = (() => {
 
   function updateScan(zMm) {
     scanGroup.position.y = -zMm;
+    curScanZ = zMm;
     const section = computeCrossSection(derived, zMm / 1000);
 
     if (sectionMesh) { sectionMesh.geometry.dispose(); scanGroup.remove(sectionMesh); }
@@ -728,11 +752,7 @@ const jet = (() => {
     scanGroup.add(sectionLine);
 
     // 标签跟随投影
-    const v = new THREE.Vector3(FRAME_SIZE / 2 + 3, -zMm, 0).project(camera);
-    const w = viewportWrap.clientWidth, h = viewportWrap.clientHeight;
-    scanLabel.style.left = (((v.x + 1) / 2) * w) + 'px';
-    scanLabel.style.top = (((-v.y + 1) / 2) * h - 8) + 'px';
-    scanLabel.textContent = `扫描平面  z = ${zMm.toFixed(1)} mm`;
+    placeScanLabel();
   }
 
   function updateFront(frontMm) {
@@ -771,6 +791,7 @@ const jet = (() => {
     setMode,
     setStripes,
     setScan,
+    setScanSize,
     updateScan,
     updateFront,
     showFront,
@@ -1182,6 +1203,7 @@ let lastPhys = { shape: -1, width: -1, flow: -1, aspect: -1 };
 let lastFront = -1;
 let lastScanDepth = -1;
 let lastScanOn = -1;
+let lastScanSize = -1;
 let lastMode = -1;
 let lastStripes = -1;
 
@@ -1209,6 +1231,7 @@ function applyAll(t, forceCamera = false) {
   if (v.renderMode !== lastMode) { lastMode = v.renderMode; jet.setMode(v.renderMode); }
   if (v.flowStripes !== lastStripes) { lastStripes = v.flowStripes; jet.setStripes(v.flowStripes === 1); }
   if (v.scanOn !== lastScanOn) { lastScanOn = v.scanOn; jet.setScan(v.scanOn === 1); }
+  if (v.scanSize !== lastScanSize) { lastScanSize = v.scanSize; jet.setScanSize(v.scanSize); }
   if (jet.derived && v.scanOn === 1) {
     const effDepth = Math.min(v.scanDepth, Math.max(2, L - 2));
     if (Math.abs(effDepth - lastScanDepth) > 1e-6) { lastScanDepth = effDepth; jet.updateScan(effDepth); }
