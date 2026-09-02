@@ -2848,14 +2848,78 @@ function applyProjectData(data) {
   return p;
 }
 
-function exportProjectFile() {
-  const blob = new Blob([JSON.stringify(serializeProject(), null, 2)], { type: 'application/json' });
+// 保存工程弹窗：可自定义文件名；Chrome/Edge 支持系统「另存为」自选保存位置（File System Access
+// API），保存时直接写入所选文件；其他浏览器降级为浏览器默认下载目录（仅自定义文件名）。
+const projectSaveModal = document.getElementById('project-save-modal');
+const psName = document.getElementById('ps-name');
+const psLoc = document.getElementById('ps-loc');
+const psBrowse = document.getElementById('ps-browse');
+const psFsNote = document.getElementById('ps-fs-note');
+const psInfo = document.getElementById('ps-info');
+const FS_SAVE_OK = typeof window.showSaveFilePicker === 'function';
+let projectFileHandle = null; // 用户经 showSaveFilePicker 选中的文件句柄（null=下载到默认目录）
+
+function projectDefaultBaseName() {
   const d = new Date(), pad = n => String(n).padStart(2, '0');
-  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
-  downloadBlob(blob, `axis-switching_工程_${stamp}.json`);
-  const keyCount = Object.values(state.keys).reduce((s, a) => s + a.length, 0);
-  flashHint(`💾 已导出工程文件（${state.duration}s · ${keyCount} 个关键帧）— 可随时通过「打开工程」或拖拽恢复`);
+  return `axis-switching_工程_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
 }
+
+function openProjectSaveModal() {
+  projectFileHandle = null;
+  const keyCount = Object.values(state.keys).reduce((s, a) => s + a.length, 0);
+  const audioBit = (audioState.peaks && audioState.peaks.length)
+    ? '（音频不内嵌工程文件，恢复后需重新导入）' : '';
+  psInfo.textContent = `当前工程 ${state.duration}s · ${keyCount} 个关键帧 · 配色 / 背景 / 视角等设置均包含${audioBit}`;
+  if (!psName.value.trim()) psName.value = projectDefaultBaseName();
+  if (FS_SAVE_OK) {
+    psFsNote.style.display = 'none';
+    psLoc.value = '浏览器默认下载目录';
+    psBrowse.disabled = false;
+  } else {
+    psFsNote.style.display = 'block';
+    psBrowse.disabled = true;
+  }
+  projectSaveModal.style.display = 'flex';
+  psName.focus();
+  psName.select();
+}
+document.getElementById('ps-cancel').addEventListener('click', () => { projectSaveModal.style.display = 'none'; });
+psBrowse.addEventListener('click', async () => {
+  if (!FS_SAVE_OK || projectFileHandle) return;
+  try {
+    const suggested = sanitizeName(psName.value.trim() || projectDefaultBaseName()) + '.json';
+    const handle = await window.showSaveFilePicker({
+      suggestedName: suggested,
+      types: [{ description: '射流轴交换工作台工程', accept: { 'application/json': ['.json'] } }],
+    });
+    projectFileHandle = handle;
+    psLoc.value = handle.name; // 浏览器出于安全不暴露完整路径，仅显示最终文件名
+    psLoc.title = '已选定保存文件：' + handle.name + '（点击「保存工程」将写入该文件）';
+  } catch (err) {
+    if (err && err.name === 'AbortError') return; // 用户在系统对话框中取消
+    console.warn('选择保存位置失败', err);
+  }
+});
+document.getElementById('ps-save').addEventListener('click', async () => {
+  try {
+    const data = JSON.stringify(serializeProject(), null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    if (projectFileHandle) {
+      const w = await projectFileHandle.createWritable();
+      await w.write(blob);
+      await w.close();
+    } else {
+      const fname = sanitizeName(psName.value.trim() || projectDefaultBaseName());
+      downloadBlob(blob, /\.json$/i.test(fname) ? fname : fname + '.json');
+    }
+    const keyCount = Object.values(state.keys).reduce((s, a) => s + a.length, 0);
+    const locText = projectFileHandle ? `「${projectFileHandle.name}」` : '浏览器下载目录';
+    projectSaveModal.style.display = 'none';
+    flashHint(`💾 工程已保存到 ${locText}（${state.duration}s · ${keyCount} 个关键帧）— 可随时通过「打开工程」或拖拽恢复`);
+  } catch (err) {
+    alert('保存工程失败：' + err.message);
+  }
+});
 
 async function importProjectFile(file) {
   try {
@@ -2919,7 +2983,7 @@ function tryRestoreAutosave() {
   }
 }
 
-document.getElementById('btn-project-save').addEventListener('click', exportProjectFile);
+document.getElementById('btn-project-save').addEventListener('click', openProjectSaveModal);
 document.getElementById('btn-project-open').addEventListener('click', () => document.getElementById('file-project').click());
 document.getElementById('file-project').addEventListener('change', () => {
   const f = document.getElementById('file-project').files[0];
