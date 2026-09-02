@@ -234,6 +234,8 @@ const TRACKS = [
   { g: '液柱显示', id: 'scanOn', label: '截面扫描', min: 0, max: 1, step: 1, def: 0, integer: true, seg: ['关', '开'] },
   { g: '液柱显示', id: 'scanDepth', label: '扫描深度 z', min: 0, max: 220, lo: 0, hi: 500, step: 0.5, def: 33 },
   { g: '液柱显示', id: 'scanSize', label: '扫描框大小', min: 10, max: 120, lo: 5, hi: 240, step: 1, def: FRAME_SIZE },
+  { g: '液柱显示', id: 'sectionOpacity', label: '截面透明度', min: 0, max: 1, step: 0.01, def: 1 },
+  { g: '液柱显示', id: 'xray', label: '穿透显示', min: 0, max: 1, step: 1, def: 1, integer: true, seg: ['关', '开'] },
   { g: '液柱显示', id: 'frontProgress', label: '液柱生长', min: 0, max: 1, lo: 0, hi: 1, step: 0.01, def: 1 },
 ];
 const TRACK_MAP = Object.fromEntries(TRACKS.map(t => [t.id, t]));
@@ -334,7 +336,7 @@ scene.add(new THREE.AmbientLight(0x8899bb, 0.5));
 
 // ---------------------------------------------------------------------------
 // 配色：不同线条的颜色 + 平面（液柱/截面/前端/扫描框）的颜色与透明度
-// 基准值随工程保存；渲染时叠加模式/扫描调暗系数（applyDim）
+// 基准值随工程保存；渲染时叠加显示模式系数
 // ---------------------------------------------------------------------------
 const COLOR_DEFAULTS = {
   lines: {
@@ -381,8 +383,9 @@ const jet = (() => {
   let stripeTex = null;
   let derived = null;
   let mode = 0;          // 0玻璃 1实心 2热力图 3线框
-  let dim = false;       // 截面扫描时调暗液柱
   let stripesOn = true;
+  let xrayOn = true;      // 穿透显示：液柱半透明穿透（默认开，即原"开启截面扫描"的材质）
+  let sectionOpacity = 1; // 截面高亮填充透明度（可调，随关键帧）
 
   // 扫描平面组（白框 + 半透明面 + 高亮截面）
   const scanGroup = new THREE.Group();
@@ -576,7 +579,7 @@ const jet = (() => {
 
     buildPlate();
     grid.position.y = -d.jetLength * 1000 - 14;
-    applyDim();
+    applyXray();
   }
 
   function setMode(m) {
@@ -602,7 +605,7 @@ const jet = (() => {
     if (cage) cage.visible = m !== 3;
     if (cageMat) cageMat.opacity = colors.lines.cage.opacity * (m === 0 ? 1 : 1.667);
     if (overlay) overlay.visible = stripesOn && m !== 3;
-    applyDim();
+    applyXray();
   }
 
   function setStripes(on) {
@@ -611,10 +614,8 @@ const jet = (() => {
   }
 
   function setScan(on) {
-    dim = on;
     scanGroup.visible = on;
     scanLabel.style.display = on ? 'block' : 'none';
-    applyDim();
   }
 
   // 调整扫描框大小（整体缩放白框 + 半透明面，高亮截面不受影响）
@@ -633,46 +634,59 @@ const jet = (() => {
     scanLabel.textContent = `扫描平面  z = ${curScanZ.toFixed(1)} mm`;
   }
 
-  function applyDim() {
+  // 穿透显示开关：液柱半透明穿透（默认开，材质即原"开启截面扫描"的效果）
+  function setXray(on) {
+    xrayOn = on;
+    applyXray();
+  }
+
+  // 应用穿透显示材质：开=半透明穿透（transmission 0 / opacity 0.304 / 不写深度），关=正常玻璃
+  function applyXray() {
     if (jetMat) {
-      jetMat.transmission = dim ? 0 : 0.85;
-      jetMat.opacity = colors.planes.jet.opacity * (dim ? 0.304 : 1);
-      jetMat.depthWrite = !dim;
+      jetMat.transmission = xrayOn ? 0 : 0.85;
+      jetMat.opacity = colors.planes.jet.opacity * (xrayOn ? 0.304 : 1);
+      jetMat.depthWrite = !xrayOn;
       jetMat.needsUpdate = true;
     }
     for (const m of [solidMat, heatMat, wireMat]) {
       if (!m) continue;
-      const nextTransparent = dim || m.wireframe;
+      const nextTransparent = xrayOn || m.wireframe;
       if (m.transparent !== nextTransparent) m.transparent = nextTransparent;
-      m.opacity = dim ? 0.3 : 1;
-      m.depthWrite = !dim;
+      m.opacity = xrayOn ? 0.3 : 1;
+      m.depthWrite = !xrayOn;
       m.needsUpdate = true;
     }
-    if (cageMat) cageMat.opacity = colors.lines.cage.opacity * (dim ? 0.333 : (mode === 0 ? 1 : 1.667));
+    if (cageMat) cageMat.opacity = colors.lines.cage.opacity * (xrayOn ? 0.333 : (mode === 0 ? 1 : 1.667));
   }
 
-  // 应用配色：把 colors 状态写入所有 jet 相关材质（颜色/透明度，叠加模式与调暗系数）
+  // 截面高亮填充透明度（可打关键帧）：只改 sectionMesh，不动光晕/轮廓
+  function setSectionOpacity(v) {
+    sectionOpacity = v;
+    if (sectionMesh) { sectionMesh.material.opacity = v; sectionMesh.material.needsUpdate = true; }
+  }
+
+  // 应用配色：把 colors 状态写入所有 jet 相关材质（颜色/透明度，叠加显示模式系数）
   function applyJetColors() {
     const jc = colors.planes.jet, lc = colors.lines.cage;
     if (jetMat) {
       jetMat.color.set(jc.color);
-      jetMat.opacity = jc.opacity * (dim ? 0.304 : 1);
+      jetMat.opacity = jc.opacity * (xrayOn ? 0.304 : 1);
       jetMat.needsUpdate = true;
     }
     for (const m of [solidMat, wireMat]) {
       if (!m) continue;
       m.color.set(jc.color);
-      m.opacity = dim ? 0.3 : 1;
+      m.opacity = xrayOn ? 0.3 : 1;
       m.needsUpdate = true;
     }
     if (cageMat) {
       cageMat.color.set(lc.color);
-      cageMat.opacity = lc.opacity * (dim ? 0.333 : (mode === 0 ? 1 : 1.667));
+      cageMat.opacity = lc.opacity * (xrayOn ? 0.333 : (mode === 0 ? 1 : 1.667));
       cageMat.needsUpdate = true;
     }
     if (sectionMesh) {
       sectionMesh.material.color.set(colors.planes.sectionFill.color);
-      sectionMesh.material.opacity = colors.planes.sectionFill.opacity;
+      sectionMesh.material.opacity = sectionOpacity;
       sectionMesh.material.needsUpdate = true;
     }
     if (sectionHalo) {
@@ -722,7 +736,7 @@ const jet = (() => {
     const fillGeo = new THREE.ShapeGeometry(shapeFromSection(section));
     fillGeo.rotateX(-Math.PI / 2);
     sectionMesh = new THREE.Mesh(fillGeo, new THREE.MeshBasicMaterial({
-      color: new THREE.Color(colors.planes.sectionFill.color).getHex(), transparent: true, opacity: colors.planes.sectionFill.opacity, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
+      color: new THREE.Color(colors.planes.sectionFill.color).getHex(), transparent: true, opacity: sectionOpacity, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
     }));
     sectionMesh.position.y = 0.06;
     sectionMesh.renderOrder = 20;
@@ -792,6 +806,8 @@ const jet = (() => {
     setStripes,
     setScan,
     setScanSize,
+    setXray,
+    setSectionOpacity,
     updateScan,
     updateFront,
     showFront,
@@ -1204,6 +1220,8 @@ let lastFront = -1;
 let lastScanDepth = -1;
 let lastScanOn = -1;
 let lastScanSize = -1;
+let lastXray = -1;
+let lastSectionOpacity = -1;
 let lastMode = -1;
 let lastStripes = -1;
 
@@ -1232,6 +1250,8 @@ function applyAll(t, forceCamera = false) {
   if (v.flowStripes !== lastStripes) { lastStripes = v.flowStripes; jet.setStripes(v.flowStripes === 1); }
   if (v.scanOn !== lastScanOn) { lastScanOn = v.scanOn; jet.setScan(v.scanOn === 1); }
   if (v.scanSize !== lastScanSize) { lastScanSize = v.scanSize; jet.setScanSize(v.scanSize); }
+  if (v.xray !== lastXray) { lastXray = v.xray; jet.setXray(v.xray === 1); }
+  if (v.sectionOpacity !== lastSectionOpacity) { lastSectionOpacity = v.sectionOpacity; jet.setSectionOpacity(v.sectionOpacity); }
   if (jet.derived && v.scanOn === 1) {
     const effDepth = Math.min(v.scanDepth, Math.max(2, L - 2));
     if (Math.abs(effDepth - lastScanDepth) > 1e-6) { lastScanDepth = effDepth; jet.updateScan(effDepth); }
