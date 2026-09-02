@@ -2494,8 +2494,8 @@ document.getElementById('exp-start').addEventListener('click', async () => {
   if (exporting) return;
   let w, h;
   if (expRes.value === 'custom') {
-    w = Math.max(16, +document.getElementById('exp-w').value || 1920);
-    h = Math.max(16, +document.getElementById('exp-h').value || 1080);
+    w = Math.max(16, +document.getElementById('exp-w').value || 3840);
+    h = Math.max(16, +document.getElementById('exp-h').value || 2160);
   } else { [w, h] = expRes.value.split('x').map(Number); }
   const fps = +document.getElementById('exp-fps').value;
   const format = document.getElementById('exp-format').value;
@@ -2600,12 +2600,12 @@ function currentExportSize() {
   const r = document.getElementById('exp-res');
   if (r && r.value === 'custom') {
     return [
-      Math.max(16, +document.getElementById('exp-w').value || 1920),
-      Math.max(16, +document.getElementById('exp-h').value || 1080),
+      Math.max(16, +document.getElementById('exp-w').value || 3840),
+      Math.max(16, +document.getElementById('exp-h').value || 2160),
     ];
   }
   if (r) { const p = r.value.split('x').map(Number); if (p.length === 2) return p; }
-  return [1920, 1080];
+  return [3840, 2160];
 }
 function updateSafeFrame() {
   const wrap = document.getElementById('viewport-wrap');
