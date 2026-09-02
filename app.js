@@ -234,7 +234,7 @@ const TRACKS = [
   { g: '液柱显示', id: 'scanOn', label: '截面扫描', min: 0, max: 1, step: 1, def: 0, integer: true, seg: ['关', '开'] },
   { g: '液柱显示', id: 'scanDepth', label: '扫描深度 z', min: 0, max: 220, lo: 0, hi: 500, step: 0.5, def: 33 },
   { g: '液柱显示', id: 'scanSize', label: '扫描框大小', min: 10, max: 120, lo: 5, hi: 240, step: 1, def: FRAME_SIZE },
-  { g: '液柱显示', id: 'sectionOpacity', label: '截面透明度', min: 0, max: 1, step: 0.01, def: 1 },
+  { g: '液柱显示', id: 'sectionOpacity', label: '扫描框/截面透明度', min: 0, max: 1, step: 0.01, def: 1 }, // 合并乘数：白框线/衬板/高亮填充/光晕/轮廓一起淡入淡出
   { g: '液柱显示', id: 'xray', label: '穿透显示', min: 0, max: 1, step: 1, def: 1, integer: true, seg: ['关', '开'] },
   { g: '液柱显示', id: 'frontProgress', label: '液柱生长', min: 0, max: 1, lo: 0, hi: 1, step: 0.01, def: 1 },
 ];
@@ -385,7 +385,8 @@ const jet = (() => {
   let mode = 0;          // 0玻璃 1实心 2热力图 3线框
   let stripesOn = true;
   let xrayOn = true;      // 穿透显示：液柱半透明穿透（默认开，即原"开启截面扫描"的材质）
-  let sectionOpacity = 1; // 截面高亮填充透明度（可调，随关键帧）
+  let sectionOpacity = 1; // 扫描框+截面整体透明度乘数（0-1，随关键帧）：统一驱动 白框线/衬板/高亮填充/光晕/轮廓
+  const SCAN_PLANE_OPACITY = 0.12; // 扫描框衬板基准透明度（白框线以 colors.planes.scan.opacity 为基准）
 
   // 扫描平面组（白框 + 半透明面 + 高亮截面）
   const scanGroup = new THREE.Group();
@@ -398,7 +399,7 @@ const jet = (() => {
   let scanBoxMat = null, scanPlaneMat = null;
   {
     const t = 1.1;
-    scanBoxMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colors.planes.scan.color).getHex(), transparent: true, opacity: colors.planes.scan.opacity, toneMapped: false });
+    scanBoxMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colors.planes.scan.color).getHex(), transparent: true, opacity: colors.planes.scan.opacity * sectionOpacity, toneMapped: false });
     const mat = scanBoxMat;
     const mk = (w, h, x, z) => {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, t, h), mat);
@@ -408,7 +409,7 @@ const jet = (() => {
     const S = FRAME_SIZE;
     mk(S, t, 0, -S / 2); mk(S, t, 0, S / 2);
     mk(t, S, -S / 2, 0); mk(t, S, S / 2, 0);
-    scanPlaneMat = new THREE.MeshBasicMaterial({ color: 0x9cc8e8, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false, toneMapped: false });
+    scanPlaneMat = new THREE.MeshBasicMaterial({ color: 0x9cc8e8, transparent: true, opacity: SCAN_PLANE_OPACITY * sectionOpacity, side: THREE.DoubleSide, depthWrite: false, toneMapped: false });
     const plane = new THREE.Mesh(
       new THREE.PlaneGeometry(S - t, S - t),
       scanPlaneMat,
@@ -659,10 +660,18 @@ const jet = (() => {
     if (cageMat) cageMat.opacity = colors.lines.cage.opacity * (xrayOn ? 0.333 : (mode === 0 ? 1 : 1.667));
   }
 
-  // 截面高亮填充透明度（可打关键帧）：只改 sectionMesh，不动光晕/轮廓
+  // 扫描框+截面整体透明度（可打关键帧）：一条轨道同步驱动 白框线/衬板/高亮填充/光晕/轮廓 一起淡入淡出
+  function applySectionOpacity() {
+    const v = sectionOpacity;
+    if (scanBoxMat) { scanBoxMat.opacity = colors.planes.scan.opacity * v; scanBoxMat.needsUpdate = true; }
+    if (scanPlaneMat) { scanPlaneMat.opacity = SCAN_PLANE_OPACITY * v; scanPlaneMat.needsUpdate = true; }
+    if (sectionMesh) { sectionMesh.material.opacity = colors.planes.sectionFill.opacity * v; sectionMesh.material.needsUpdate = true; }
+    if (sectionHalo) { sectionHalo.material.opacity = colors.planes.sectionHalo.opacity * v; sectionHalo.material.needsUpdate = true; }
+    if (sectionLine) { sectionLine.material.opacity = colors.lines.section.opacity * v; sectionLine.material.needsUpdate = true; }
+  }
   function setSectionOpacity(v) {
     sectionOpacity = v;
-    if (sectionMesh) { sectionMesh.material.opacity = v; sectionMesh.material.needsUpdate = true; }
+    applySectionOpacity();
   }
 
   // 应用配色：把 colors 状态写入所有 jet 相关材质（颜色/透明度，叠加显示模式系数）
@@ -686,17 +695,14 @@ const jet = (() => {
     }
     if (sectionMesh) {
       sectionMesh.material.color.set(colors.planes.sectionFill.color);
-      sectionMesh.material.opacity = sectionOpacity;
       sectionMesh.material.needsUpdate = true;
     }
     if (sectionHalo) {
       sectionHalo.material.color.set(colors.planes.sectionHalo.color);
-      sectionHalo.material.opacity = colors.planes.sectionHalo.opacity;
       sectionHalo.material.needsUpdate = true;
     }
     if (sectionLine) {
       sectionLine.material.color.set(colors.lines.section.color);
-      sectionLine.material.opacity = colors.lines.section.opacity;
       sectionLine.material.needsUpdate = true;
     }
     if (frontFill) {
@@ -711,13 +717,14 @@ const jet = (() => {
     }
     if (scanBoxMat) {
       scanBoxMat.color.set(colors.planes.scan.color);
-      scanBoxMat.opacity = colors.planes.scan.opacity;
       scanBoxMat.needsUpdate = true;
     }
     if (scanPlaneMat) {
       scanPlaneMat.color.set(colors.planes.scan.color);
       scanPlaneMat.needsUpdate = true;
     }
+    // 扫描框/截面的透明度统一由 sectionOpacity 乘数驱动（白框线/衬板/填充/光晕/轮廓一起）
+    applySectionOpacity();
   }
 
   function shapeFromSection(section) {
@@ -736,7 +743,7 @@ const jet = (() => {
     const fillGeo = new THREE.ShapeGeometry(shapeFromSection(section));
     fillGeo.rotateX(-Math.PI / 2);
     sectionMesh = new THREE.Mesh(fillGeo, new THREE.MeshBasicMaterial({
-      color: new THREE.Color(colors.planes.sectionFill.color).getHex(), transparent: true, opacity: sectionOpacity, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
+      color: new THREE.Color(colors.planes.sectionFill.color).getHex(), transparent: true, opacity: colors.planes.sectionFill.opacity * sectionOpacity, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
     }));
     sectionMesh.position.y = 0.06;
     sectionMesh.renderOrder = 20;
@@ -752,7 +759,7 @@ const jet = (() => {
     const haloGeo = new THREE.ShapeGeometry(haloShape);
     haloGeo.rotateX(-Math.PI / 2);
     sectionHalo = new THREE.Mesh(haloGeo, new THREE.MeshBasicMaterial({
-      color: new THREE.Color(colors.planes.sectionHalo.color).getHex(), transparent: true, opacity: colors.planes.sectionHalo.opacity, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
+      color: new THREE.Color(colors.planes.sectionHalo.color).getHex(), transparent: true, opacity: colors.planes.sectionHalo.opacity * sectionOpacity, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
     }));
     sectionHalo.position.y = 0.03;
     sectionHalo.renderOrder = 19;
@@ -761,7 +768,7 @@ const jet = (() => {
     if (sectionLine) { sectionLine.geometry.dispose(); scanGroup.remove(sectionLine); }
     const linePts = section.points.map(([x, z]) => new THREE.Vector3(x, 0.14, z));
     sectionLine = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(linePts),
-      new THREE.LineBasicMaterial({ color: new THREE.Color(colors.lines.section.color).getHex(), transparent: true, opacity: colors.lines.section.opacity, toneMapped: false }));
+      new THREE.LineBasicMaterial({ color: new THREE.Color(colors.lines.section.color).getHex(), transparent: true, opacity: colors.lines.section.opacity * sectionOpacity, toneMapped: false }));
     sectionLine.renderOrder = 21;
     scanGroup.add(sectionLine);
 
